@@ -787,34 +787,43 @@
                         var sql = inputEditor ? inputEditor.getValue() : '';
                         if (!sql || !sql.trim()) return;
                         clearError();
+                        // 先语法检测
+                        if (!doValidate(sql)) return;
                         try {
-                            var opts = buildFormatOpts();
-                            // 最小化：单行，无缩进
-                            opts.tabWidth = 0;
-                            opts.useTabs = false;
-                            opts.linesBetweenQueries = 0;
-                            opts.expressionWidth = 99999;
                             var dialectObj = getSFDialect(dialect.value);
                             var compressed;
+                            // 用 sql-formatter 做最小化排版
+                            var minOpts = {
+                                language: dialect.value,
+                                keywordCase: keywordCase.value,
+                                useTabs: false,
+                                tabWidth: 0,
+                                linesBetweenQueries: 0,
+                                expressionWidth: 99999,
+                                logicalOperatorNewline: 'after'
+                            };
                             try {
                                 if (window.sqlFormatter.formatDialect) {
-                                    compressed = window.sqlFormatter.formatDialect(sql, Object.assign({}, opts, { dialect: dialectObj }));
+                                    compressed = window.sqlFormatter.formatDialect(sql, Object.assign({}, minOpts, { dialect: dialectObj }));
                                 } else {
-                                    compressed = window.sqlFormatter.format(sql, opts);
+                                    compressed = window.sqlFormatter.format(sql, minOpts);
                                 }
                             } catch (e) {
-                                // 降级：用通用 sql 方言
                                 compressed = window.sqlFormatter.format(sql, {
                                     language: 'sql',
-                                    keywordCase: opts.keywordCase,
+                                    keywordCase: minOpts.keywordCase,
                                     tabWidth: 0,
                                     useTabs: false,
                                     linesBetweenQueries: 0,
                                     expressionWidth: 99999
                                 });
                             }
-                            // 进一步压缩多余空格
-                            compressed = compressed.replace(/[ \t]+/g, ' ').replace(/\n\s*/g, '\n').trim();
+                            // 合并到一行：换行→空格，塌缩多余空白
+                            compressed = compressed.replace(/\n/g, ' ').replace(/[ \t]+/g, ' ').trim();
+                            // 后处理：数据类型大小写 + 关键字前后保留必要空格
+                            compressed = applyTypeCase(compressed);
+                            // 在分号后换行（如果一条 SQL 含多句，每句一行）
+                            compressed = compressed.replace(/;\s*/g, ';\n');
                             outputText.value = compressed;
                             if (outputEditor) {
                                 outputEditor.setValue(compressed);
