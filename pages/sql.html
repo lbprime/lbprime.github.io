@@ -608,20 +608,58 @@
                         return opts;
                     }
 
+                    // sql-formatter 的 keywordCase 不处理数据类型，需要后处理
+                    var SQL_DATA_TYPES = [
+                        'BIGINT', 'BINARY', 'BIT', 'BLOB', 'BOOLEAN', 'BYTE', 'CHAR', 'CHARACTER',
+                        'CLOB', 'DATE', 'DATETIME', 'DATETIME2', 'DATETIMEOFFSET', 'DEC', 'DECIMAL',
+                        'DOUBLE', 'ENUM', 'FLOAT', 'GEOGRAPHY', 'GEOMETRY', 'HIERARCHYID',
+                        'IMAGE', 'INT', 'INTEGER', 'JSON', 'LONGBLOB', 'LONGTEXT', 'MEDIUMBLOB',
+                        'MEDIUMINT', 'MEDIUMTEXT', 'MONEY', 'NCHAR', 'NTEXT', 'NUMERIC', 'NVARCHAR',
+                        'NVARCHAR2', 'REAL', 'ROWVERSION', 'SET', 'SMALLDATETIME', 'SMALLINT',
+                        'SMALLMONEY', 'SQL_VARIANT', 'TEXT', 'TIME', 'TIMESTAMP', 'TINYBLOB',
+                        'TINYINT', 'TINYTEXT', 'UNIQUEIDENTIFIER', 'VARBINARY', 'VARCHAR', 'VARCHAR2',
+                        'XML', 'YEAR', 'INTERVAL', 'SERIAL', 'BIGSERIAL', 'UUID', 'TINYINT',
+                        'INT2', 'INT4', 'INT8', 'FLOAT4', 'FLOAT8', 'BOOL', 'BYTEA', 'CITEXT',
+                        'INET', 'MACADDR', 'POINT', 'LINE', 'LSEG', 'BOX', 'PATH', 'POLYGON', 'CIRCLE',
+                        'ARRAY', 'TSQUERY', 'TSVECTOR', 'REGPROC', 'REGTYPE'
+                    ];
+
+                    function applyTypeCase(sql) {
+                        var kc = keywordCase.value;
+                        if (kc === 'preserve') return sql;
+                        // 匹配单词边界内的类型名，避免命中字符串内容
+                        var result = sql;
+                        for (var i = 0; i < SQL_DATA_TYPES.length; i++) {
+                            var typeName = SQL_DATA_TYPES[i];
+                            var pattern = new RegExp('\\b' + typeName + '\\b', 'gi');
+                            if (kc === 'upper') {
+                                result = result.replace(pattern, typeName.toUpperCase());
+                            } else if (kc === 'lower') {
+                                result = result.replace(pattern, typeName.toLowerCase());
+                            } else if (kc === 'capitalize') {
+                                var cap = typeName.charAt(0).toUpperCase() + typeName.slice(1).toLowerCase();
+                                result = result.replace(pattern, cap);
+                            }
+                        }
+                        return result;
+                    }
+
                     // ---- 执行格式化 ----
                     function doFormat(sql) {
                         var opts = buildFormatOpts();
                         var dialectObj = getSFDialect(dialect.value);
+                        var formatted;
                         try {
                             // 优先用 formatDialect API
                             if (window.sqlFormatter.formatDialect) {
-                                return window.sqlFormatter.formatDialect(sql, Object.assign({}, opts, { dialect: dialectObj }));
+                                formatted = window.sqlFormatter.formatDialect(sql, Object.assign({}, opts, { dialect: dialectObj }));
+                            } else {
+                                formatted = window.sqlFormatter.format(sql, opts);
                             }
-                            return window.sqlFormatter.format(sql, opts);
                         } catch (e) {
                             // 降级：不带 dialect 的 format
                             try {
-                                return window.sqlFormatter.format(sql, {
+                                formatted = window.sqlFormatter.format(sql, {
                                     language: 'sql',
                                     keywordCase: opts.keywordCase,
                                     useTabs: opts.useTabs,
@@ -633,6 +671,8 @@
                                 throw new Error('格式化失败: ' + (e.message || e));
                             }
                         }
+                        // 后处理：数据类型大小写转换
+                        return applyTypeCase(formatted);
                     }
 
                     // ---- 语法检测 ----
