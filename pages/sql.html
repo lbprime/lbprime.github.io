@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LBN-SQL格式化</title>
+    <meta name="description"
+        content="LBN万能网站在线SQL格式化工具，支持SQL语法检测、语法高亮、关键字大小写转换、SQL压缩美化，支持MySQL/PostgreSQL/SQLite等多种方言。">
+    <meta name="keywords" content="LBN,万能网站,SQL格式化,SQL压缩,SQL语法检测,SQL工具,在线SQL美化,代码格式化,开发者工具">
+    <link rel="stylesheet" href="/assets/libs/element-plus/element-plus.index.css">
+    <link rel="stylesheet" href="/assets/libs/monaco-editor/editor/editor.main.css">
+    <style>
+        body {
+            margin: 0;
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        .sql-tool {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 16px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .sql-header {
+            margin-bottom: 6px;
+            padding-left: 20px;
+            flex-shrink: 0;
+        }
+
+        .sql-header .title-row {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .sql-header h3 {
+            margin: 0;
+            font-size: 20px;
+            color: #303133;
+        }
+
+        .sql-header p {
+            margin: 0;
+            color: #909399;
+            font-size: 13px;
+        }
+
+        /* 面板头部：左侧按钮 + 右侧配置 */
+        .sql-panel-header {
+            font-size: 13px;
+            color: #606266;
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            min-height: 28px;
+        }
+
+        .panel-header-left {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .panel-header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .panel-header-right .sep {
+            width: 1px;
+            height: 18px;
+            background: #dcdfe6;
+            margin: 0 2px;
+        }
+
+        .panel-header-right .opts-label {
+            font-size: 12px;
+            color: #909399;
+            margin-right: 1px;
+        }
+
+        .panel-header-right .el-select .el-input {
+            width: 170px;
+        }
+
+        .panel-header-right .el-switch {
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .panel-header-right .el-switch__label {
+            white-space: nowrap;
+        }
+
+        .sql-panels {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            gap: 12px;
+        }
+
+        .sql-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .sql-panel-body {
+            flex: 1;
+            min-height: 0;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #fafafa;
+        }
+
+        .sql-error {
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        .sql-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #909399;
+            flex-shrink: 0;
+        }
+
+        .sql-footer .stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .sql-footer .stats span strong {
+            color: #606266;
+        }
+
+        .sql-footer .stats .label {
+            color: #c0c4cc;
+            margin-right: 2px;
+        }
+
+        .donate-sidebar {
+            width: 100px;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 8px;
+        }
+
+        .donate-sidebar-text {
+            font-size: 12px;
+            color: #909399;
+            letter-spacing: 2px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .donate-sidebar-qrs {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .donate-sidebar-qr {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .donate-sidebar-qr:hover {
+            transform: scale(1.05);
+        }
+
+        .donate-sidebar-qr img {
+            width: 72px;
+            height: 72px;
+            border-radius: 4px;
+            border: 1px solid #e8e8e8;
+            padding: 4px;
+            background: #fff;
+            object-fit: contain;
+        }
+
+        .donate-sidebar-qr span {
+            font-size: 11px;
+            color: #c0c4cc;
+        }
+
+        .el-overlay-dialog {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .el-dialog {
+            margin-top: 0 !important;
+        }
+
+        .donate-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 48px;
+            padding: 16px;
+            height: calc(70vh - 112px);
+            min-height: 588px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .donate-img-col {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .donate-img-col img {
+            max-width: 290px;
+            max-height: calc(100% - 36px);
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            border-radius: 8px;
+            border: 1px solid #e8e8e8;
+            padding: 8px;
+            background: #fff;
+        }
+
+        .donate-img-col p {
+            font-size: 15px;
+            color: #909399;
+            margin-top: 8px;
+            flex-shrink: 0;
+        }
+
+        /* 配置面板折叠 */
+        .sql-config-collapse {
+            margin-bottom: 8px;
+        }
+
+        .sql-config-collapse .el-collapse-item__header {
+            font-size: 12px;
+            color: #909399;
+            padding: 0 8px;
+            height: 32px;
+            line-height: 32px;
+            border: none;
+            background: transparent;
+        }
+
+        .sql-config-collapse .el-collapse-item__wrap {
+            border: none;
+            background: transparent;
+        }
+
+        .sql-config-collapse .el-collapse-item__content {
+            padding: 4px 8px;
+        }
+
+        /* 编辑器加载中 */
+        .editor-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #c0c4cc;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="sql-tool">
+            <div class="sql-header">
+                <div class="title-row">
+                    <h3>SQL 工具</h3>
+                    <p>在线 SQL 格式化 / 语法检测 / 压缩，支持多种方言</p>
+                </div>
+                <el-button @click="goHome" text style="padding-left:0">
+                    <el-icon><home-filled-icon></home-filled-icon></el-icon>&nbsp;返回首页
+                </el-button>
+            </div>
+
+            <div class="sql-panels">
+                <div class="donate-sidebar">
+                    <span class="donate-sidebar-text">创作不易<br>打赏一二</span>
+                    <div class="donate-sidebar-qrs">
+                        <div class="donate-sidebar-qr" @click="donateVisible = true">
+                            <img src="/assets/images/donate-wechat.png" alt="微信打赏">
+                            <span>微信</span>
+                        </div>
+                        <div class="donate-sidebar-qr" @click="donateVisible = true">
+                            <img src="/assets/images/donate-alipay.png" alt="支付宝打赏">
+                            <span>支付宝</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sql-panel sql-panel-input">
+                    <div class="sql-panel-header">
+                        <div class="panel-header-left">
+                            <el-button type="primary" size="small"
+                                @click="formatSql"><el-icon><edit-icon></el-icon></el-icon> 格式化</el-button>
+                            <el-button size="small"
+                                @click="validateSql"><el-icon><circle-check-icon></el-icon></el-icon> 语法检测</el-button>
+                            <el-button type="success" size="small"
+                                @click="compressSql"><el-icon><switch-icon></el-icon></el-icon> 压缩</el-button>
+                        </div>
+                        <div class="panel-header-right">
+                            <el-select v-model="dialect" size="small" @change="onDialectChange" placeholder="方言"
+                                style="width:170px;flex-shrink:0">
+                                <el-option v-for="d in dialectOptions" :key="d.value" :label="d.label"
+                                    :value="d.value"></el-option>
+                            </el-select>
+                            <el-select v-model="keywordCase" size="small" style="width:155px;flex-shrink:0">
+                                <el-option label="关键字: UPPER" value="upper"></el-option>
+                                <el-option label="关键字: lower" value="lower"></el-option>
+                                <el-option label="关键字: 保持原样" value="preserve"></el-option>
+                            </el-select>
+                        </div>
+                    </div>
+                    <div class="sql-panel-body" ref="inputContainer"></div>
+                </div>
+
+                <div class="sql-panel sql-panel-output">
+                    <div class="sql-panel-header">
+                        <div class="panel-header-left">
+                            <el-button size="small" @click="copyResult"
+                                :disabled="!outputText"><el-icon><document-copy-icon></el-icon></el-icon>
+                                复制结果</el-button>
+                            <el-button size="small" @click="swapPanels"
+                                :disabled="!outputText"><el-icon><sort-icon></el-icon></el-icon> 交换</el-button>
+                            <el-button size="small" @click="clearAll" :disabled="!inputText && !outputText" type="info"
+                                plain><el-icon><delete-icon></delete-icon></el-icon> 清空</el-button>
+                        </div>
+                        <div class="panel-header-right">
+                            <span style="font-weight:400;color:#c0c4cc;font-size:12px;">{{ outputStatus }}</span>
+                            <el-select v-model="indentMode" size="small" style="width:80px;flex-shrink:0">
+                                <el-option label="2空格" :value="2"></el-option>
+                                <el-option label="4空格" :value="4"></el-option>
+                                <el-option label="Tab" value="tab"></el-option>
+                            </el-select>
+                            <el-switch v-model="logicalOpNewline" size="small" active-text="AND/OR 换行"
+                                style="flex-shrink:0"></el-switch>
+                            <el-switch v-model="autoValidate" size="small" active-text="实时检测语法"></el-switch>
+                        </div>
+                    </div>
+                    <div class="sql-panel-body" ref="outputContainer"></div>
+                </div>
+            </div>
+
+            <div class="sql-error" v-if="errorMsg">
+                <el-alert :title="errorMsg" type="error" :closable="true" show-icon @close="errorMsg=''"></el-alert>
+            </div>
+
+            <div class="sql-footer">
+                <div class="stats">
+                    <span><span class="label">输入</span> 字符: <strong>{{ inputCharCount.toLocaleString() }}</strong> | 行:
+                        <strong>{{ inputLineCount }}</strong> | <strong>{{ inputSizeText }}</strong></span>
+                    <span><span class="label">结果</span> 字符: <strong>{{ outputCharCount.toLocaleString() }}</strong> | 行:
+                        <strong>{{ outputLineCount }}</strong> | <strong>{{ outputSizeText }}</strong></span>
+                </div>
+                <span>{{ statusText }}</span>
+            </div>
+        </div>
+
+        <el-dialog v-model="donateVisible" title="创作不易，打赏一二" width="640px" center>
+            <div class="donate-content">
+                <div class="donate-img-col">
+                    <img src="/assets/images/donate-wechat.png" alt="微信打赏">
+                    <p>微信</p>
+                </div>
+                <div class="donate-img-col">
+                    <img src="/assets/images/donate-alipay.png" alt="支付宝打赏">
+                    <p>支付宝</p>
+                </div>
+            </div>
+        </el-dialog>
+    </div>
+
+    <!-- 全局库：在 Monaco loader 之前加载，避免 AMD 劫持 -->
+    <script src="/assets/libs/vue/vue.global.prod.js"></script>
+    <script src="/assets/libs/element-plus/element-plus.index.full.min.js"></script>
+    <script src="/assets/libs/element-plus/element-plus.icons.iife.min.js"></script>
+    <script src="/assets/libs/node-sql-parser/index.umd.js"></script>
+    <script src="/assets/libs/sql-formatter/sql-formatter.min.js"></script>
+    <!-- Monaco AMD loader 最后加载 -->
+    <script src="/assets/libs/monaco-editor/loader.js"></script>
+
+    <script type="text/javascript">
+        // 方言选项列表
+        var DIALECT_OPTIONS = [
+            { label: 'MySQL', value: 'mysql' },
+            { label: 'PostgreSQL', value: 'postgresql' },
+            { label: 'SQLite', value: 'sqlite' },
+            { label: 'SQL Server (T-SQL)', value: 'tsql' },
+            { label: 'Oracle (PL/SQL)', value: 'plsql' },
+            { label: 'MariaDB', value: 'mariadb' },
+            { label: 'BigQuery', value: 'bigquery' },
+            { label: 'Snowflake', value: 'snowflake' },
+            { label: 'Hive', value: 'hive' },
+            { label: 'Spark SQL', value: 'spark' },
+            { label: 'Redshift', value: 'redshift' },
+            { label: 'Trino', value: 'trino' },
+            { label: 'ClickHouse', value: 'clickhouse' },
+            { label: 'DuckDB', value: 'duckdb' },
+            { label: 'DB2', value: 'db2' },
+            { label: 'TiDB', value: 'tidb' },
+            { label: 'N1QL (Couchbase)', value: 'n1ql' },
+            { label: 'SingleStoreDB', value: 'singlestoredb' }
+        ];
+
+        // node-sql-parser 内部 database 名称映射（不完全一致）
+        var PARSER_DIALECT_MAP = {
+            'mysql': 'MySQL',
+            'postgresql': 'PostgreSQL',
+            'sqlite': 'SQLite',
+            'tsql': 'TransactSQL',
+            'mariadb': 'MariaDB',
+            'hive': 'Hive',
+            'bigquery': 'BigQuery',
+            'db2': 'DB2'
+            // 其余方言 node-sql-parser 不原生支持，用 MySQL 兜底
+        };
+
+        // sql-formatter 的 dialect 对象引用（等库加载后获取）
+        var SF_DIALECTS = {};
+
+        function getSFDialect(key) {
+            if (SF_DIALECTS[key]) return SF_DIALECTS[key];
+            // 尝试从 sqlFormatter 全局获取
+            var sf = window.sqlFormatter;
+            if (!sf) return null;
+            // 兼容两种 API 形态
+            var map = {
+                'mysql': sf.mysql,
+                'postgresql': sf.postgresql,
+                'sqlite': sf.sqlite,
+                'tsql': sf.transactsql,
+                'plsql': sf.plsql,
+                'mariadb': sf.mariadb,
+                'bigquery': sf.bigquery,
+                'snowflake': sf.snowflake,
+                'hive': sf.hive,
+                'spark': sf.spark,
+                'redshift': sf.redshift,
+                'trino': sf.trino,
+                'clickhouse': sf.clickhouse,
+                'duckdb': sf.duckdb,
+                'db2': sf.db2 || sf.db2i,
+                'tidb': sf.tidb,
+                'n1ql': sf.n1ql,
+                'singlestoredb': sf.singlestoredb
+            };
+            SF_DIALECTS[key] = map[key] || sf.mysql;
+            return SF_DIALECTS[key];
+        }
+
+        // ========== Monaco 初始化 ==========
+        require.config({
+            paths: { 'vs': '/assets/libs/monaco-editor' },
+            'vs/nls': { availableLanguages: { '*': 'zh-cn' } }
+        });
+
+        require(['vs/editor/editor.main'], function () {
+            // ES5 兼容的 Vue 3 app
+            var _a = Vue, createApp = _a.createApp, ref = _a.ref, computed = _a.computed, watch = _a.watch, onMounted = _a.onMounted, nextTick = _a.nextTick;
+
+            var app = createApp({
+                setup: function () {
+                    // ---- localStorage 持久化配置 ----
+                    var STORAGE_KEY = 'lbprime_sql_config';
+
+                    function loadConfig() {
+                        try {
+                            var raw = localStorage.getItem(STORAGE_KEY);
+                            if (raw) return JSON.parse(raw);
+                        } catch (_) { }
+                        return {};
+                    }
+
+                    function saveConfig(cfg) {
+                        try {
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+                        } catch (_) { }
+                    }
+
+                    var saved = loadConfig();
+
+                    // ---- 状态 ----
+                    var inputText = ref('');
+                    var outputText = ref('');
+                    var errorMsg = ref('');
+                    var statusText = ref('');
+                    var inputStatus = ref('');
+                    var outputStatus = ref('');
+                    var autoValidate = ref(saved.autoValidate !== undefined ? saved.autoValidate : true);
+                    var donateVisible = ref(false);
+
+                    // 格式化选项（优先从 localStorage 恢复，否则用新默认值）
+                    var dialect = ref(saved.dialect || 'tsql');
+                    var keywordCase = ref(saved.keywordCase || 'lower');
+                    var indentMode = ref(saved.indentMode !== undefined ? saved.indentMode : 2);
+                    var logicalOpNewline = ref(saved.logicalOpNewline !== undefined ? saved.logicalOpNewline : true);
+
+                    // Monaco 实例引用
+                    var inputEditor = null;
+                    var outputEditor = null;
+                    var inputContainer = ref(null);
+                    var outputContainer = ref(null);
+
+                    var dialectOptions = ref(DIALECT_OPTIONS);
+                    var validateTimer = null;
+
+                    // ---- 计算属性 ----
+                    var inputCharCount = computed(function () {
+                        return inputText.value.length;
+                    });
+                    var inputLineCount = computed(function () {
+                        if (!inputText.value) return 0;
+                        return inputText.value.split(/\r?\n/).length;
+                    });
+                    var inputSizeText = computed(function () {
+                        return formatSize(inputText.value);
+                    });
+
+                    var outputCharCount = computed(function () {
+                        return outputText.value.length;
+                    });
+                    var outputLineCount = computed(function () {
+                        if (!outputText.value) return 0;
+                        return outputText.value.split(/\r?\n/).length;
+                    });
+                    var outputSizeText = computed(function () {
+                        return formatSize(outputText.value);
+                    });
+
+                    // ---- 工具函数 ----
+                    function formatSize(str) {
+                        if (!str) return '0 B';
+                        var bytes = new Blob([str]).size;
+                        if (bytes < 1024) return bytes + ' B';
+                        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+                    }
+
+                    function setStatus(msg) {
+                        statusText.value = msg;
+                        setTimeout(function () {
+                            if (statusText.value === msg) statusText.value = '';
+                        }, 2000);
+                    }
+
+                    function showError(msg) {
+                        errorMsg.value = msg;
+                        outputStatus.value = '操作失败';
+                    }
+
+                    function clearError() {
+                        errorMsg.value = '';
+                    }
+
+                    // ---- 构建格式化 options ----
+                    function buildFormatOpts() {
+                        var opts = {
+                            language: dialect.value,
+                            keywordCase: keywordCase.value,
+                            logicalOperatorNewline: logicalOpNewline.value ? 'before' : 'after',
+                            linesBetweenQueries: 1,
+                            expressionWidth: 80
+                        };
+
+                        if (indentMode.value === 'tab') {
+                            opts.useTabs = true;
+                            opts.tabWidth = 1;
+                        } else {
+                            opts.useTabs = false;
+                            opts.tabWidth = indentMode.value;
+                        }
+
+                        return opts;
+                    }
+
+                    // ---- 执行格式化 ----
+                    function doFormat(sql) {
+                        var opts = buildFormatOpts();
+                        var dialectObj = getSFDialect(dialect.value);
+                        try {
+                            // 优先用 formatDialect API
+                            if (window.sqlFormatter.formatDialect) {
+                                return window.sqlFormatter.formatDialect(sql, Object.assign({}, opts, { dialect: dialectObj }));
+                            }
+                            return window.sqlFormatter.format(sql, opts);
+                        } catch (e) {
+                            // 降级：不带 dialect 的 format
+                            try {
+                                return window.sqlFormatter.format(sql, {
+                                    language: 'sql',
+                                    keywordCase: opts.keywordCase,
+                                    useTabs: opts.useTabs,
+                                    tabWidth: opts.tabWidth,
+                                    logicalOperatorNewline: opts.logicalOperatorNewline,
+                                    linesBetweenQueries: opts.linesBetweenQueries
+                                });
+                            } catch (e2) {
+                                throw new Error('格式化失败: ' + (e.message || e));
+                            }
+                        }
+                    }
+
+                    // ---- 语法检测 ----
+                    function doValidate(sql, showSuccess) {
+                        if (!sql || !sql.trim()) {
+                            clearMarkers();
+                            inputStatus.value = '';
+                            return null;
+                        }
+                        var db = PARSER_DIALECT_MAP[dialect.value] || 'MySQL';
+                        try {
+                            var ParserCtor = window.NodeSQLParser.Parser;
+                            var parser;
+                            try {
+                                parser = new ParserCtor();
+                            } catch (_) {
+                                // 某些打包版本可能不需要 new
+                                parser = ParserCtor();
+                            }
+                            var ast = parser.astify(sql, { database: db });
+                            clearMarkers();
+                            if (showSuccess) {
+                                inputStatus.value = '✓ 语法正确';
+                                setStatus('SQL 语法检测通过');
+                                setTimeout(function () {
+                                    if (inputStatus.value === '✓ 语法正确') inputStatus.value = '';
+                                }, 3000);
+                            }
+                            return ast;
+                        } catch (e) {
+                            var loc = extractErrorLocation(e, sql);
+                            if (loc) {
+                                setMarkers([{
+                                    severity: monaco.MarkerSeverity.Error,
+                                    message: e.message || String(e),
+                                    startLineNumber: loc.startLine,
+                                    startColumn: loc.startColumn,
+                                    endLineNumber: loc.endLine,
+                                    endColumn: loc.endColumn
+                                }]);
+                            }
+                            if (showSuccess) {
+                                inputStatus.value = '✗ 语法错误';
+                                showError('SQL 语法错误: ' + (e.message || e));
+                            } else {
+                                inputStatus.value = '✗ 语法错误';
+                            }
+                            return null;
+                        }
+                    }
+
+                    // ---- 错误位置解析 ----
+                    // node-sql-parser 的异常信息格式： "... at line 2, column 5"
+                    function extractErrorLocation(e, sql) {
+                        var msg = e.message || String(e);
+                        var loc = { startLine: 1, startColumn: 1, endLine: 1, endColumn: 2 };
+
+                        // 尝试从 message 中提取行列
+                        var lineMatch = msg.match(/at line\s+(\d+)/i);
+                        var colMatch = msg.match(/column\s+(\d+)/i);
+                        if (lineMatch) loc.startLine = parseInt(lineMatch[1], 10) || 1;
+                        if (colMatch) loc.startColumn = parseInt(colMatch[1], 10) || 1;
+                        loc.endLine = loc.startLine;
+                        loc.endColumn = loc.startColumn + 1;
+
+                        // 尝试 structured location（如果 node-sql-parser 提供了）
+                        if (e.location) {
+                            var eloc = e.location;
+                            if (eloc.start) {
+                                loc.startLine = eloc.start.line || loc.startLine;
+                                loc.startColumn = eloc.start.column || loc.startColumn;
+                            }
+                            if (eloc.end) {
+                                loc.endLine = eloc.end.line || loc.startLine;
+                                loc.endColumn = eloc.end.column || (loc.startColumn + 1);
+                            }
+                        }
+
+                        // 如果没有提取到有效行列，在最后一行标记
+                        if (!lineMatch && !colMatch && !e.location) {
+                            var lines = (sql || '').split(/\r?\n/);
+                            loc.startLine = lines.length;
+                            loc.startColumn = (lines[lines.length - 1] || '').length + 1;
+                            loc.endLine = loc.startLine;
+                            loc.endColumn = loc.startColumn + 1;
+                        }
+
+                        return loc;
+                    }
+
+                    // ---- Monaco markers 管理 ----
+                    function setMarkers(markers) {
+                        if (inputEditor) {
+                            monaco.editor.setModelMarkers(inputEditor.getModel(), 'sql-parser', markers);
+                        }
+                    }
+
+                    function clearMarkers() {
+                        if (inputEditor) {
+                            monaco.editor.setModelMarkers(inputEditor.getModel(), 'sql-parser', []);
+                        }
+                    }
+
+                    // ---- 操作函数 ----
+                    function formatSql() {
+                        var sql = inputEditor ? inputEditor.getValue() : '';
+                        if (!sql || !sql.trim()) return;
+                        clearError();
+                        try {
+                            var formatted = doFormat(sql);
+                            outputText.value = formatted;
+                            if (outputEditor) {
+                                outputEditor.setValue(formatted);
+                            }
+                            outputStatus.value = '格式化完成';
+                            setStatus('格式化完成');
+                        } catch (e) {
+                            showError(e.message || String(e));
+                        }
+                    }
+
+                    function validateSql() {
+                        var sql = inputEditor ? inputEditor.getValue() : '';
+                        if (!sql || !sql.trim()) return;
+                        clearError();
+                        doValidate(sql, true);
+                    }
+
+                    function compressSql() {
+                        var sql = inputEditor ? inputEditor.getValue() : '';
+                        if (!sql || !sql.trim()) return;
+                        clearError();
+                        try {
+                            var opts = buildFormatOpts();
+                            // 最小化：单行，无缩进
+                            opts.tabWidth = 0;
+                            opts.useTabs = false;
+                            opts.linesBetweenQueries = 0;
+                            opts.expressionWidth = 99999;
+                            var dialectObj = getSFDialect(dialect.value);
+                            var compressed;
+                            try {
+                                if (window.sqlFormatter.formatDialect) {
+                                    compressed = window.sqlFormatter.formatDialect(sql, Object.assign({}, opts, { dialect: dialectObj }));
+                                } else {
+                                    compressed = window.sqlFormatter.format(sql, opts);
+                                }
+                            } catch (e) {
+                                // 降级：用通用 sql 方言
+                                compressed = window.sqlFormatter.format(sql, {
+                                    language: 'sql',
+                                    keywordCase: opts.keywordCase,
+                                    tabWidth: 0,
+                                    useTabs: false,
+                                    linesBetweenQueries: 0,
+                                    expressionWidth: 99999
+                                });
+                            }
+                            // 进一步压缩多余空格
+                            compressed = compressed.replace(/[ \t]+/g, ' ').replace(/\n\s*/g, '\n').trim();
+                            outputText.value = compressed;
+                            if (outputEditor) {
+                                outputEditor.setValue(compressed);
+                            }
+                            outputStatus.value = '压缩完成';
+                            setStatus('压缩完成');
+                        } catch (e) {
+                            showError('压缩失败: ' + (e.message || e));
+                        }
+                    }
+
+                    function copyResult() {
+                        if (!outputText.value) return;
+                        navigator.clipboard.writeText(outputText.value).then(function () {
+                            setStatus('结果已复制到剪贴板');
+                            ElementPlus.ElMessage.success('结果已复制到剪贴板');
+                        }).catch(function () {
+                            showError('复制失败，请手动选择复制');
+                        });
+                    }
+
+                    function swapPanels() {
+                        if (!outputText.value) return;
+                        var currentOutput = outputText.value;
+                        if (inputEditor) {
+                            inputEditor.setValue(currentOutput);
+                            inputText.value = currentOutput;
+                        }
+                        outputText.value = '';
+                        if (outputEditor) {
+                            outputEditor.setValue('');
+                        }
+                        clearMarkers();
+                        inputStatus.value = '';
+                        outputStatus.value = '已交换（结果→输入）';
+                        setStatus('输入输出已交换');
+                    }
+
+                    function clearAll() {
+                        if (inputEditor) inputEditor.setValue('');
+                        if (outputEditor) outputEditor.setValue('');
+                        inputText.value = '';
+                        outputText.value = '';
+                        errorMsg.value = '';
+                        inputStatus.value = '';
+                        outputStatus.value = '';
+                        clearMarkers();
+                        setStatus('已清空');
+                    }
+
+                    function goHome() {
+                        window.location.href = '/';
+                    }
+
+                    function onDialectChange() {
+                        // 方言变更后重新校验并格式化
+                        if (autoValidate.value && inputText.value.trim()) {
+                            scheduleValidate();
+                        }
+                    }
+
+                    // ---- 实时检测 ----
+                    function scheduleValidate() {
+                        if (validateTimer) clearTimeout(validateTimer);
+                        validateTimer = setTimeout(function () {
+                            var sql = inputEditor ? inputEditor.getValue() : '';
+                            if (sql.trim()) {
+                                doValidate(sql, false);
+                            } else {
+                                clearMarkers();
+                                inputStatus.value = '';
+                            }
+                        }, 500);
+                    }
+
+                    // ---- 配置变更自动持久化 ----
+                    function persistConfig() {
+                        saveConfig({
+                            dialect: dialect.value,
+                            keywordCase: keywordCase.value,
+                            indentMode: indentMode.value,
+                            logicalOpNewline: logicalOpNewline.value,
+                            autoValidate: autoValidate.value
+                        });
+                    }
+                    watch(dialect, persistConfig);
+                    watch(keywordCase, persistConfig);
+                    watch(indentMode, persistConfig);
+                    watch(logicalOpNewline, persistConfig);
+                    watch(autoValidate, persistConfig);
+
+                    // ---- Monaco 编辑器创建 ----
+                    function createEditors() {
+                        if (!inputContainer.value || !outputContainer.value) return;
+
+                        // 输入编辑器
+                        inputEditor = monaco.editor.create(inputContainer.value, {
+                            value: '',
+                            language: 'sql',
+                            theme: 'vs',
+                            fontSize: 13,
+                            lineHeight: 21,
+                            fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Monaco', monospace",
+                            minimap: { enabled: false },
+                            scrollBeyondLastLine: false,
+                            wordWrap: 'off',
+                            automaticLayout: true,
+                            tabSize: 4,
+                            insertSpaces: true,
+                            renderWhitespace: 'selection',
+                            bracketPairColorization: { enabled: true },
+                            matchBrackets: 'always',
+                            overviewRulerBorder: false,
+                            overviewRulerLanes: 0,
+                            hideCursorInOverviewRuler: true,
+                            renderLineHighlight: 'line',
+                            lineNumbers: 'on',
+                            scrollbar: {
+                                vertical: 'auto',
+                                horizontal: 'auto',
+                                verticalScrollbarSize: 10,
+                                horizontalScrollbarSize: 10
+                            },
+                            padding: { top: 8, bottom: 8 },
+                            placeholder: '在此粘贴或输入 SQL 语句...'
+                        });
+
+                        // 输出编辑器（只读）
+                        outputEditor = monaco.editor.create(outputContainer.value, {
+                            value: '',
+                            language: 'sql',
+                            theme: 'vs',
+                            fontSize: 13,
+                            lineHeight: 21,
+                            fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Monaco', monospace",
+                            minimap: { enabled: false },
+                            scrollBeyondLastLine: false,
+                            wordWrap: 'off',
+                            automaticLayout: true,
+                            tabSize: 4,
+                            readOnly: true,
+                            renderWhitespace: 'selection',
+                            bracketPairColorization: { enabled: true },
+                            overviewRulerBorder: false,
+                            overviewRulerLanes: 0,
+                            hideCursorInOverviewRuler: true,
+                            renderLineHighlight: 'none',
+                            lineNumbers: 'on',
+                            scrollbar: {
+                                vertical: 'auto',
+                                horizontal: 'auto',
+                                verticalScrollbarSize: 10,
+                                horizontalScrollbarSize: 10
+                            },
+                            padding: { top: 8, bottom: 8 }
+                        });
+
+                        // 输入变更 → 同步 Vue 状态 + 实时校验
+                        inputEditor.onDidChangeModelContent(function () {
+                            var val = inputEditor.getValue();
+                            inputText.value = val;
+                            if (autoValidate.value) {
+                                scheduleValidate();
+                            } else {
+                                clearMarkers();
+                                inputStatus.value = '';
+                            }
+                        });
+
+                        // 双击输出编辑器 → 将内容移回输入
+                        outputEditor.onMouseDown(function (e) {
+                            if (e.target.detail >= 2) {
+                                swapPanels();
+                            }
+                        });
+
+                        // 快捷键：Ctrl+Shift+F 格式化
+                        inputEditor.addAction({
+                            id: 'format-sql',
+                            label: 'Format SQL',
+                            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF],
+                            run: function () { formatSql(); }
+                        });
+
+                        // 快捷键：Ctrl+Shift+M 压缩
+                        inputEditor.addAction({
+                            id: 'compress-sql',
+                            label: 'Compress SQL',
+                            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyM],
+                            run: function () { compressSql(); }
+                        });
+                    }
+
+                    // ---- 初始化 ----
+                    onMounted(function () {
+                        nextTick(function () {
+                            createEditors();
+                        });
+                    });
+
+                    return {
+                        inputText: inputText,
+                        outputText: outputText,
+                        errorMsg: errorMsg,
+                        statusText: statusText,
+                        inputStatus: inputStatus,
+                        outputStatus: outputStatus,
+                        autoValidate: autoValidate,
+                        donateVisible: donateVisible,
+                        dialect: dialect,
+                        keywordCase: keywordCase,
+                        indentMode: indentMode,
+                        logicalOpNewline: logicalOpNewline,
+                        dialectOptions: dialectOptions,
+                        inputCharCount: inputCharCount,
+                        inputLineCount: inputLineCount,
+                        inputSizeText: inputSizeText,
+                        outputCharCount: outputCharCount,
+                        outputLineCount: outputLineCount,
+                        outputSizeText: outputSizeText,
+                        inputContainer: inputContainer,
+                        outputContainer: outputContainer,
+                        formatSql: formatSql,
+                        validateSql: validateSql,
+                        compressSql: compressSql,
+                        copyResult: copyResult,
+                        swapPanels: swapPanels,
+                        clearAll: clearAll,
+                        goHome: goHome,
+                        onDialectChange: onDialectChange
+                    };
+                }
+            });
+
+            // 注册 Element Plus 图标
+            app.component('edit-icon', ElementPlusIconsVue.Edit);
+            app.component('switch-icon', ElementPlusIconsVue.Switch);
+            app.component('circle-check-icon', ElementPlusIconsVue.CircleCheck);
+            app.component('document-copy-icon', ElementPlusIconsVue.DocumentCopy);
+            app.component('delete-icon', ElementPlusIconsVue.Delete);
+            app.component('home-filled-icon', ElementPlusIconsVue.HomeFilled);
+            app.component('sort-icon', ElementPlusIconsVue.Sort);
+
+            app.use(ElementPlus);
+            app.mount('#app');
+        });
+    </script>
+</body>
+
+</html>
