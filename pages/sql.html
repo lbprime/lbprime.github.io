@@ -334,13 +334,11 @@
                         <div class="panel-header-left">
                             <el-button type="primary" size="small"
                                 @click="formatSql"><el-icon><edit-icon></el-icon></el-icon> 格式化</el-button>
-                            <el-button size="small"
-                                @click="validateSql"><el-icon><circle-check-icon></el-icon></el-icon> 语法检测</el-button>
                             <el-button type="success" size="small"
                                 @click="compressSql"><el-icon><switch-icon></el-icon></el-icon> 压缩</el-button>
                         </div>
                         <div class="panel-header-right">
-                            <el-select v-model="dialect" size="small" @change="onDialectChange" placeholder="方言"
+                            <el-select v-model="dialect" size="small" placeholder="方言"
                                 style="width:170px;flex-shrink:0">
                                 <el-option v-for="d in dialectOptions" :key="d.value" :label="d.label"
                                     :value="d.value"></el-option>
@@ -375,7 +373,6 @@
                             </el-select>
                             <el-switch v-model="logicalOpNewline" size="small" active-text="AND/OR 换行"
                                 style="flex-shrink:0"></el-switch>
-                            <el-switch v-model="autoValidate" size="small" active-text="实时检测语法"></el-switch>
                         </div>
                     </div>
                     <div class="sql-panel-body" ref="outputContainer"></div>
@@ -525,9 +522,7 @@
                     var outputText = ref('');
                     var errorMsg = ref('');
                     var statusText = ref('');
-                    var inputStatus = ref('');
                     var outputStatus = ref('');
-                    var autoValidate = ref(saved.autoValidate !== undefined ? saved.autoValidate : true);
                     var donateVisible = ref(false);
 
                     // 格式化选项（优先从 localStorage 恢复，否则用新默认值）
@@ -543,7 +538,6 @@
                     var outputContainer = ref(null);
 
                     var dialectOptions = ref(DIALECT_OPTIONS);
-                    var validateTimer = null;
 
                     // ---- 计算属性 ----
                     var inputCharCount = computed(function () {
@@ -642,10 +636,9 @@
                     }
 
                     // ---- 语法检测 ----
-                    function doValidate(sql, showSuccess) {
+                    function doValidate(sql) {
                         if (!sql || !sql.trim()) {
                             clearMarkers();
-                            inputStatus.value = '';
                             return null;
                         }
                         var db = PARSER_DIALECT_MAP[dialect.value] || 'MySQL';
@@ -655,37 +648,25 @@
                             try {
                                 parser = new ParserCtor();
                             } catch (_) {
-                                // 某些打包版本可能不需要 new
                                 parser = ParserCtor();
                             }
                             var ast = parser.astify(sql, { database: db });
                             clearMarkers();
-                            if (showSuccess) {
-                                inputStatus.value = '✓ 语法正确';
-                                setStatus('SQL 语法检测通过');
-                                setTimeout(function () {
-                                    if (inputStatus.value === '✓ 语法正确') inputStatus.value = '';
-                                }, 3000);
-                            }
                             return ast;
                         } catch (e) {
+                            var errMsg = e.message || String(e);
                             var loc = extractErrorLocation(e, sql);
                             if (loc) {
                                 setMarkers([{
                                     severity: monaco.MarkerSeverity.Error,
-                                    message: e.message || String(e),
+                                    message: errMsg,
                                     startLineNumber: loc.startLine,
                                     startColumn: loc.startColumn,
                                     endLineNumber: loc.endLine,
                                     endColumn: loc.endColumn
                                 }]);
                             }
-                            if (showSuccess) {
-                                inputStatus.value = '✗ 语法错误';
-                                showError('SQL 语法错误: ' + (e.message || e));
-                            } else {
-                                inputStatus.value = '✗ 语法错误';
-                            }
+                            showError('SQL 语法错误: ' + errMsg);
                             return null;
                         }
                     }
@@ -747,6 +728,8 @@
                         var sql = inputEditor ? inputEditor.getValue() : '';
                         if (!sql || !sql.trim()) return;
                         clearError();
+                        // 先语法检测，不通过则不格式化（doValidate 内部已显示具体错误）
+                        if (!doValidate(sql)) return;
                         try {
                             var formatted = doFormat(sql);
                             outputText.value = formatted;
@@ -758,13 +741,6 @@
                         } catch (e) {
                             showError(e.message || String(e));
                         }
-                    }
-
-                    function validateSql() {
-                        var sql = inputEditor ? inputEditor.getValue() : '';
-                        if (!sql || !sql.trim()) return;
-                        clearError();
-                        doValidate(sql, true);
                     }
 
                     function compressSql() {
@@ -832,7 +808,6 @@
                             outputEditor.setValue('');
                         }
                         clearMarkers();
-                        inputStatus.value = '';
                         outputStatus.value = '已交换（结果→输入）';
                         setStatus('输入输出已交换');
                     }
@@ -843,7 +818,6 @@
                         inputText.value = '';
                         outputText.value = '';
                         errorMsg.value = '';
-                        inputStatus.value = '';
                         outputStatus.value = '';
                         clearMarkers();
                         setStatus('已清空');
@@ -853,42 +827,19 @@
                         window.location.href = '/';
                     }
 
-                    function onDialectChange() {
-                        // 方言变更后重新校验并格式化
-                        if (autoValidate.value && inputText.value.trim()) {
-                            scheduleValidate();
-                        }
-                    }
-
-                    // ---- 实时检测 ----
-                    function scheduleValidate() {
-                        if (validateTimer) clearTimeout(validateTimer);
-                        validateTimer = setTimeout(function () {
-                            var sql = inputEditor ? inputEditor.getValue() : '';
-                            if (sql.trim()) {
-                                doValidate(sql, false);
-                            } else {
-                                clearMarkers();
-                                inputStatus.value = '';
-                            }
-                        }, 500);
-                    }
-
                     // ---- 配置变更自动持久化 ----
                     function persistConfig() {
                         saveConfig({
                             dialect: dialect.value,
                             keywordCase: keywordCase.value,
                             indentMode: indentMode.value,
-                            logicalOpNewline: logicalOpNewline.value,
-                            autoValidate: autoValidate.value
+                            logicalOpNewline: logicalOpNewline.value
                         });
                     }
                     watch(dialect, persistConfig);
                     watch(keywordCase, persistConfig);
                     watch(indentMode, persistConfig);
                     watch(logicalOpNewline, persistConfig);
-                    watch(autoValidate, persistConfig);
 
                     // ---- Monaco 编辑器创建 ----
                     function createEditors() {
@@ -956,16 +907,10 @@
                             padding: { top: 8, bottom: 8 }
                         });
 
-                        // 输入变更 → 同步 Vue 状态 + 实时校验
+                        // 输入变更 → 同步 Vue 状态
                         inputEditor.onDidChangeModelContent(function () {
                             var val = inputEditor.getValue();
                             inputText.value = val;
-                            if (autoValidate.value) {
-                                scheduleValidate();
-                            } else {
-                                clearMarkers();
-                                inputStatus.value = '';
-                            }
                         });
 
                         // 双击输出编辑器 → 将内容移回输入
@@ -1004,9 +949,7 @@
                         outputText: outputText,
                         errorMsg: errorMsg,
                         statusText: statusText,
-                        inputStatus: inputStatus,
                         outputStatus: outputStatus,
-                        autoValidate: autoValidate,
                         donateVisible: donateVisible,
                         dialect: dialect,
                         keywordCase: keywordCase,
@@ -1022,13 +965,11 @@
                         inputContainer: inputContainer,
                         outputContainer: outputContainer,
                         formatSql: formatSql,
-                        validateSql: validateSql,
                         compressSql: compressSql,
                         copyResult: copyResult,
                         swapPanels: swapPanels,
                         clearAll: clearAll,
-                        goHome: goHome,
-                        onDialectChange: onDialectChange
+                        goHome: goHome
                     };
                 }
             });
