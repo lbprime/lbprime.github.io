@@ -960,6 +960,12 @@
                         inputEditor.onDidChangeModelContent(function () {
                             var val = inputEditor.getValue();
                             inputText.value = val;
+                            // 输入变更时清空输出
+                            outputText.value = '';
+                            outputStatus.value = '';
+                            if (outputEditor) {
+                                outputEditor.setValue('');
+                            }
                         });
 
                         // 双击输出编辑器 → 将内容移回输入
