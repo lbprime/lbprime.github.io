@@ -696,6 +696,22 @@
                             clearMarkers();
                             return null;
                         }
+
+                        // node-sql-parser 对 DDL 支持有限，跳过语法检测直接格式化
+                        var trimmed = sql.trim().toUpperCase();
+                        var DDL_PREFIXES = [
+                            'CREATE ', 'ALTER ', 'DROP ',
+                            'TRUNCATE ', 'RENAME ', 'GRANT ', 'REVOKE ',
+                            'SET ', 'DECLARE ', 'EXEC ', 'EXECUTE ',
+                            'BACKUP ', 'RESTORE ', 'DBCC '
+                        ];
+                        for (var i = 0; i < DDL_PREFIXES.length; i++) {
+                            if (trimmed.indexOf(DDL_PREFIXES[i]) === 0) {
+                                clearMarkers();
+                                return {}; // 返回非空对象，表示"跳过检测"
+                            }
+                        }
+
                         var db = PARSER_DIALECT_MAP[dialect.value] || 'MySQL';
                         try {
                             var ParserCtor = window.NodeSQLParser.Parser;
