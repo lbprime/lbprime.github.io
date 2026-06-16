@@ -381,6 +381,7 @@
                         </div>
                         <div class="panel-header-right">
                             <span style="font-weight:400;color:#c0c4cc;font-size:12px;">{{ outputStatus }}</span>
+                            <span v-if="validationSkipped" style="color:#e6a23c;font-weight:600;font-size:12px;margin-left:6px;">⚠ 未做语法检测，请自行确认</span>
                             <el-select v-model="indentMode" size="small" style="width:80px;flex-shrink:0">
                                 <el-option label="2空格" :value="2"></el-option>
                                 <el-option label="4空格" :value="4"></el-option>
@@ -538,6 +539,7 @@
                     var errorMsg = ref('');
                     var statusText = ref('');
                     var outputStatus = ref('');
+                    var validationSkipped = ref(false);
                     var donateVisible = ref(false);
 
                     // 格式化选项（优先从 localStorage 恢复，否则用新默认值）
@@ -691,6 +693,8 @@
                     }
 
                     // ---- 语法检测 ----
+                    var VALIDATION_SKIPPED = {}; // 唯一 sentinel，标识跳过了 node-sql-parser 检测
+
                     function doValidate(sql) {
                         if (!sql || !sql.trim()) {
                             clearMarkers();
@@ -708,7 +712,12 @@
                         for (var i = 0; i < DDL_PREFIXES.length; i++) {
                             if (trimmed.indexOf(DDL_PREFIXES[i]) === 0) {
                                 clearMarkers();
-                                return {}; // 返回非空对象，表示"跳过检测"
+                                ElementPlus.ElMessage.warning({
+                                    message: '当前语句为 DDL / 管理命令，已跳过语法检测，仅做格式化，请自行确认语法正确性',
+                                    duration: 0,
+                                    showClose: true
+                                });
+                                return VALIDATION_SKIPPED;
                             }
                         }
 
@@ -800,7 +809,9 @@
                         if (!sql || !sql.trim()) return;
                         clearError();
                         // 先语法检测，不通过则不格式化（doValidate 内部已显示具体错误）
-                        if (!doValidate(sql)) return;
+                        var validateResult = doValidate(sql);
+                        if (!validateResult) return;
+                        validationSkipped.value = validateResult === VALIDATION_SKIPPED;
                         try {
                             var formatted = doFormat(sql);
                             outputText.value = formatted;
@@ -819,7 +830,9 @@
                         if (!sql || !sql.trim()) return;
                         clearError();
                         // 先语法检测
-                        if (!doValidate(sql)) return;
+                        var validateResult = doValidate(sql);
+                        if (!validateResult) return;
+                        validationSkipped.value = validateResult === VALIDATION_SKIPPED;
                         try {
                             var dialectObj = getSFDialect(dialect.value);
                             var compressed;
@@ -899,6 +912,7 @@
                         outputText.value = '';
                         errorMsg.value = '';
                         outputStatus.value = '';
+                        validationSkipped.value = false;
                         clearMarkers();
                         setStatus('已清空');
                     }
@@ -994,6 +1008,7 @@
                             // 输入变更时清空输出
                             outputText.value = '';
                             outputStatus.value = '';
+                            validationSkipped.value = false;
                             if (outputEditor) {
                                 outputEditor.setValue('');
                             }
@@ -1036,6 +1051,7 @@
                         errorMsg: errorMsg,
                         statusText: statusText,
                         outputStatus: outputStatus,
+                        validationSkipped: validationSkipped,
                         donateVisible: donateVisible,
                         dialect: dialect,
                         keywordCase: keywordCase,
