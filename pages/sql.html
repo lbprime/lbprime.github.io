@@ -661,6 +661,82 @@
                         return result;
                     }
 
+                    // ---- 剥离注释（状态机逐字符扫描，正确处理字符串字面量） ----
+                    function removeComments(sql) {
+                        var result = '';
+                        var i = 0;
+                        var len = sql.length;
+
+                        while (i < len) {
+                            // -- 单行注释：跳过直到行尾，保留换行
+                            if (sql[i] === '-' && sql[i + 1] === '-') {
+                                while (i < len && sql[i] !== '\n') i++;
+                                if (i < len) { result += '\n'; i++; } // 保留换行
+                                continue;
+                            }
+
+                            // /* 多行注释 */
+                            if (sql[i] === '/' && sql[i + 1] === '*') {
+                                i += 2;
+                                while (i < len - 1 && !(sql[i] === '*' && sql[i + 1] === '/')) i++;
+                                i += 2; // 跳过 */
+                                continue;
+                            }
+
+                            // 单引号字符串：原样保留，处理转义
+                            if (sql[i] === "'") {
+                                result += sql[i++];
+                                while (i < len) {
+                                    result += sql[i];
+                                    if (sql[i] === '\\') { i++; if (i < len) { result += sql[i]; i++; } continue; }
+                                    if (sql[i] === "'") {
+                                        if (sql[i + 1] === "'") { result += "'"; i += 2; continue; } // 双单引号转义
+                                        i++;
+                                        break;
+                                    }
+                                    i++;
+                                }
+                                continue;
+                            }
+
+                            // 双引号标识符/字符串
+                            if (sql[i] === '"') {
+                                result += sql[i++];
+                                while (i < len) {
+                                    result += sql[i];
+                                    if (sql[i] === '"') {
+                                        if (sql[i + 1] === '"') { result += '"'; i += 2; continue; }
+                                        i++;
+                                        break;
+                                    }
+                                    i++;
+                                }
+                                continue;
+                            }
+
+                            // 反引号标识符 (MySQL)
+                            if (sql[i] === '`') {
+                                result += sql[i++];
+                                while (i < len && sql[i] !== '`') { result += sql[i++]; }
+                                if (i < len) { result += '`'; i++; }
+                                continue;
+                            }
+
+                            // 方括号标识符 (T-SQL)
+                            if (sql[i] === '[') {
+                                result += sql[i++];
+                                while (i < len && sql[i] !== ']') { result += sql[i++]; }
+                                if (i < len) { result += ']'; i++; }
+                                continue;
+                            }
+
+                            // 普通字符
+                            result += sql[i++];
+                        }
+
+                        return result;
+                    }
+
                     // ---- 执行格式化 ----
                     function doFormat(sql) {
                         var opts = buildFormatOpts();
@@ -829,7 +905,9 @@
                         var sql = inputEditor ? inputEditor.getValue() : '';
                         if (!sql || !sql.trim()) return;
                         clearError();
-                        // 先语法检测
+                        // 先剥离注释，否则压缩合并到一行后，-- 注释会把后面的 SQL 全吞掉
+                        sql = removeComments(sql);
+                        // 语法检测
                         var validateResult = doValidate(sql);
                         if (!validateResult) return;
                         validationSkipped.value = validateResult === VALIDATION_SKIPPED;
