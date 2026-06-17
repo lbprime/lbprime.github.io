@@ -388,10 +388,6 @@
             line-height: 1.7;
         }
 
-        .jt-node {
-            user-select: none;
-        }
-
         .jt-row {
             display: flex;
             align-items: baseline;
@@ -517,7 +513,7 @@
                         </div>
                         <span style="font-weight:400;color:#c0c4cc;font-size:12px;">{{ resultStatus }}</span>
                         <el-button size="small" @click="copyResult"
-                            :disabled="!resultText"><el-icon><document-copy-icon></document-copy-icon></el-icon>&nbsp;复制结果</el-button>
+                            :disabled="!resultText && !jsonTreeData"><el-icon><document-copy-icon></document-copy-icon></el-icon>&nbsp;复制结果</el-button>
                         <span
                             style="margin-left:auto;font-size:12px;color:#909399;display:flex;align-items:center;gap:4px;">
                             <el-switch v-model="autoFormat" size="small" active-text="处理后自动格式化"></el-switch>
@@ -724,7 +720,42 @@
                     }
                 }
 
+                function buildTreeText(node, indent, isLast, isRoot) {
+                    var lines = [];
+                    var prefix = indent.join('');
+                    var line;
+
+                    if (isRoot) {
+                        line = node.key;
+                        if (node.summary) line += ' ' + node.summary;
+                        if (node.displayValue) line += ': ' + node.displayValue;
+                    } else {
+                        line = prefix + (isLast ? '└─ ' : '├─ ') + node.key;
+                        if (node.displayValue) line += ': ' + node.displayValue;
+                        if (node.summary) line += ' ' + node.summary;
+                    }
+                    lines.push(line);
+
+                    if (node.hasChildren && node.children.length > 0) {
+                        var childIndent = isRoot ? [] : indent.concat([isLast ? '   ' : '│  ']);
+                        for (var i = 0; i < node.children.length; i++) {
+                            lines = lines.concat(buildTreeText(node.children[i], childIndent, i === node.children.length - 1, false));
+                        }
+                    }
+                    return lines;
+                }
+
                 function copyResult() {
+                    if (activeView.value === 'tree' && jsonTreeData.value) {
+                        var treeText = buildTreeText(jsonTreeData.value, [], false, true).join('\n');
+                        navigator.clipboard.writeText(treeText).then(function () {
+                            setStatus('树形图已复制到剪贴板');
+                            ElementPlus.ElMessage.success('树形图已复制到剪贴板');
+                        }).catch(function (e) {
+                            showError('复制失败，请手动选择复制');
+                        });
+                        return;
+                    }
                     if (!resultText.value) return;
                     navigator.clipboard.writeText(resultText.value).then(function () {
                         setStatus('结果已复制到剪贴板');
