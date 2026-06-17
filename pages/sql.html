@@ -661,6 +661,145 @@
                         return result;
                     }
 
+                    // ---- 后处理：SQL 函数名大小写 ----
+                    var SQL_FUNCTIONS = [
+                        // 聚合 / 窗口
+                        'APPROX_COUNT_DISTINCT', 'CHECKSUM_AGG', 'STRING_AGG',
+                        'COUNT_BIG', 'ROW_NUMBER', 'DENSE_RANK', 'PERCENT_RANK',
+                        'FIRST_VALUE', 'LAST_VALUE', 'NTH_VALUE', 'RATIO_TO_REPORT',
+                        'CUME_DIST', 'PERCENTILE_CONT', 'PERCENTILE_DISC',
+                        'GROUPING_ID', 'GROUPING', 'STDEVP', 'STDEV', 'VARP', 'VAR',
+                        'SUM', 'AVG', 'MAX', 'MIN', 'COUNT',
+                        // 排序 / 偏移
+                        'LAG', 'LEAD', 'NTILE', 'RANK',
+                        // 字符串
+                        'CHARACTER_LENGTH', 'CHAR_LENGTH', 'STRING_ESCAPE',
+                        'REGEXP_REPLACE', 'REGEXP_SUBSTR', 'REGEXP_INSTR',
+                        'REGEXP_LIKE', 'REGEXP_COUNT',
+                        'CONCAT_WS', 'CHARINDEX', 'QUOTENAME', 'SOUNDEX',
+                        'DIFFERENCE', 'REPLICATE', 'PATINDEX', 'SUBSTRING',
+                        'SUBSTR', 'TRANSLATE', 'POSITION', 'LOCATE',
+                        'CONCAT', 'REPLACE', 'REVERSE', 'LENGTH',
+                        'LTRIM', 'RTRIM', 'UPPER', 'LOWER', 'TRIM',
+                        'SPACE', 'STUFF', 'ASCII', 'RIGHT', 'LEFT',
+                        'LPAD', 'RPAD', 'REPEAT', 'INSTR', 'INITCAP',
+                        'UNICODE', 'STR',
+                        // 日期时间
+                        'SYSDATETIMEOFFSET', 'SMALLDATETIMEFROMPARTS',
+                        'DATETIME2FROMPARTS', 'DATETIMEOFFSETFROMPARTS',
+                        'TIMESTAMPDIFF', 'TIMESTAMPADD',
+                        'SWITCHOFFSET', 'TODATETIMEOFFSET',
+                        'CURRENT_TIMESTAMP', 'FROM_UNIXTIME',
+                        'UNIX_TIMESTAMP', 'SYSDATETIME',
+                        'SYSUTCDATETIME', 'DATE_FORMAT',
+                        'STR_TO_DATE', 'DATE_TRUNC', 'TIMEFROMPARTS',
+                        'DATEFROMPARTS', 'GETUTCDATE', 'DATEDIFF_BIG',
+                        'DATEADD', 'DATEDIFF', 'DATENAME', 'DATEPART',
+                        'DATE_PART', 'LAST_DAY', 'DAYOFWEEK',
+                        'DAYOFYEAR', 'DAYOFMONTH', 'WEEKOFYEAR',
+                        'MAKEDATE', 'MAKETIME', 'ADDDATE', 'ADDTIME',
+                        'SUBDATE', 'ISDATE', 'GETDATE', 'EOMONTH',
+                        'CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_TIMEZONE',
+                        'SYSDATE', 'CURDATE', 'CURTIME',
+                        'QUARTER', 'MINUTE', 'SECOND', 'MICROSECOND',
+                        'EXTRACT', 'TO_DATE', 'TO_TIMESTAMP',
+                        'TO_CHAR', 'TO_NUMBER',
+                        'NOW', 'DAY', 'MONTH', 'YEAR', 'HOUR',
+                        // 数学
+                        'DEGREES', 'RADIANS', 'CEILING', 'TRUNCATE',
+                        'WIDTH_BUCKET', 'GREATEST', 'LEAST',
+                        'SQUARE', 'RANDOM', 'FLOOR', 'ROUND', 'POWER',
+                        'SQRT', 'CEIL', 'ATAN2', 'ATN2', 'ASIN', 'ACOS',
+                        'ATAN', 'SIGN', 'SIN', 'COS', 'TAN', 'COT',
+                        'EXP', 'LOG10', 'LOG2', 'LOG', 'LN', 'ABS', 'PI',
+                        'MOD', 'DIV', 'POW', 'GCD', 'LCM',
+                        // 转换 / 条件
+                        'TRY_CONVERT', 'TRY_CAST', 'TRY_PARSE',
+                        'COALESCE', 'NULLIF', 'ISNULL', 'IFNULL',
+                        'ISNUMERIC', 'DECODE', 'CHOOSE',
+                        'CONVERT', 'NVL2', 'CAST', 'NVL', 'IIF', 'IF',
+                        // JSON
+                        'JSON_MODIFY', 'JSON_VALUE', 'JSON_QUERY',
+                        'JSON_EXTRACT', 'JSON_UNQUOTE', 'JSON_CONTAINS',
+                        'JSON_OBJECT', 'JSON_ARRAY', 'JSON_MERGE',
+                        'JSON_REPLACE', 'JSON_INSERT', 'JSON_REMOVE',
+                        'JSON_TABLE', 'JSON_ARRAYAGG', 'JSON_OBJECTAGG',
+                        'JSON_DEPTH', 'JSON_KEYS', 'JSON_LENGTH',
+                        'JSON_TYPE', 'JSON_VALID', 'JSON_SET',
+                        'JSON_PRETTY', 'JSON_MERGE_PATCH',
+                        'JSON_MERGE_PRESERVE', 'JSON_ARRAY_APPEND',
+                        'JSON_STORAGE_SIZE',
+                        'OPENJSON', 'ISJSON',
+                        // 系统/元数据
+                        'NEWSEQUENTIALID', 'SCOPE_IDENTITY',
+                        'IDENT_CURRENT', 'OBJECT_DEFINITION',
+                        'OBJECT_SCHEMA_NAME',
+                        'ORIGINAL_DB_NAME', 'ORIGINAL_LOGIN',
+                        'SUSER_SNAME', 'SUSER_NAME', 'SUSER_SID',
+                        'SYSTEM_USER', 'SESSION_USER', 'CURRENT_USER',
+                        'SESSIONPROPERTY', 'SERVERPROPERTY',
+                        'DATABASEPROPERTYEX', 'OBJECTPROPERTY',
+                        'OBJECTPROPERTYEX', 'COLUMNPROPERTY',
+                        'INDEXPROPERTY', 'TYPEPROPERTY',
+                        'CONNECTIONPROPERTY',
+                        'FULLTEXTCATALOGPROPERTY', 'FULLTEXTSERVICEPROPERTY',
+                        'IS_SRVROLEMEMBER', 'IS_ROLEMEMBER',
+                        'HAS_DBACCESS', 'IS_MEMBER', 'PARSENAME',
+                        'STATS_DATE', 'COL_LENGTH', 'COL_NAME',
+                        'FILEGROUP_NAME', 'FILEGROUP_ID',
+                        'FILEPROPERTY', 'FILEGROUPPROPERTY',
+                        'FILE_NAME', 'FILE_ID', 'FILE_IDEX',
+                        'SCHEMA_ID', 'SCHEMA_NAME',
+                        'OBJECT_ID', 'OBJECT_NAME',
+                        'DB_NAME', 'DB_ID', 'TYPE_ID', 'TYPE_NAME',
+                        'SUSER_ID', 'USER_NAME', 'USER_ID',
+                        'APP_NAME', 'HOST_NAME', 'HOST_ID',
+                        'NEWID',
+                        'ERROR_MESSAGE', 'ERROR_NUMBER',
+                        'ERROR_PROCEDURE', 'ERROR_SEVERITY',
+                        'ERROR_STATE', 'ERROR_LINE',
+                        'FORMATMESSAGE', 'XACT_STATE',
+                        'SESSION_CONTEXT', 'CONTEXT_INFO',
+                        'PERMISSIONS', 'LOGINPROPERTY',
+                        'ASSEMBLYPROPERTY', 'CERTPROPERTY',
+                        'ASYMKEYPROPERTY', 'SYMKEYPROPERTY',
+                        'CERT_ID', 'ASYMKEY_ID',
+                        'KEY_GUID', 'KEY_ID', 'KEY_NAME',
+                        'PWDCOMPARE', 'PWDENCRYPT', 'HASHBYTES',
+                        'COMPRESS', 'DECOMPRESS', 'BINARY_CHECKSUM',
+                        'CHECKSUM', 'TEXTPTR', 'TEXTVALID',
+                        'DATALENGTH', 'LEN',
+                        // 其他常用
+                        'COLLATIONPROPERTY', 'TERTIARY_WEIGHTS',
+                        'CURSOR_STATUS', 'EVENTDATA',
+                        'TRIGGER_NESTLEVEL', 'COLUMNS_UPDATED',
+                        'SQL_VARIANT_PROPERTY',
+                        'MIN_ACTIVE_ROWVERSION', 'PUBLISHINGSERVERNAME',
+                        'GET_FILESTREAM_TRANSACTION_CONTEXT',
+                        'GETANSINULL', 'OPENDATASOURCE', 'OPENQUERY',
+                        'OPENROWSET', 'OPENXML',
+                        'CERTENCODED', 'CERTPRIVATEKEY'
+                    ];
+
+                    function applyFunctionCase(sql) {
+                        var kc = keywordCase.value;
+                        if (kc === 'preserve') return sql;
+                        var result = sql;
+                        for (var i = 0; i < SQL_FUNCTIONS.length; i++) {
+                            var fnName = SQL_FUNCTIONS[i];
+                            var pattern = new RegExp('\\b' + fnName + '\\b', 'gi');
+                            if (kc === 'upper') {
+                                result = result.replace(pattern, fnName.toUpperCase());
+                            } else if (kc === 'lower') {
+                                result = result.replace(pattern, fnName.toLowerCase());
+                            } else if (kc === 'capitalize') {
+                                var cap = fnName.charAt(0).toUpperCase() + fnName.slice(1).toLowerCase();
+                                result = result.replace(pattern, cap);
+                            }
+                        }
+                        return result;
+                    }
+
                     // ---- 剥离注释（状态机逐字符扫描，正确处理字符串字面量） ----
                     function removeComments(sql) {
                         var result = '';
@@ -764,8 +903,8 @@
                                 throw new Error('格式化失败: ' + (e.message || e));
                             }
                         }
-                        // 后处理：数据类型大小写转换
-                        return applyTypeCase(formatted);
+                        // 后处理：数据类型 + 函数名大小写转换
+                        return applyFunctionCase(applyTypeCase(formatted));
                     }
 
                     // ---- 语法检测 ----
@@ -942,8 +1081,8 @@
                             }
                             // 合并到一行：换行→空格，塌缩多余空白
                             compressed = compressed.replace(/\n/g, ' ').replace(/[ \t]+/g, ' ').trim();
-                            // 后处理：数据类型大小写 + 关键字前后保留必要空格
-                            compressed = applyTypeCase(compressed);
+                            // 后处理：数据类型 + 函数名大小写 + 关键字前后保留必要空格
+                            compressed = applyFunctionCase(applyTypeCase(compressed));
                             // 在分号后换行（如果一条 SQL 含多句，每句一行）
                             compressed = compressed.replace(/;\s*/g, ';\n');
                             outputText.value = compressed;
