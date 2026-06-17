@@ -932,18 +932,24 @@
             },
             data: function () {
                 return {
-                    expanded: this.node.hasChildren && this.depth < 2
+                    expanded: this.node.hasChildren && this.depth < 2,
+                    _mdTime: 0
                 };
             },
             methods: {
-                toggle: function () {
-                    if (this.node.hasChildren) {
+                onMouseDown: function (e) {
+                    this._mdTime = e.button === 0 ? Date.now() : 0;
+                },
+                onMouseUp: function () {
+                    if (!this.node.hasChildren) return;
+                    if (this._mdTime && Date.now() - this._mdTime < 300 && !window.getSelection().toString()) {
                         this.expanded = !this.expanded;
                     }
+                    this._mdTime = 0;
                 }
             },
             template: '<div class="jt-node" :class="\'jt-\' + node.type">'
-                + '<div class="jt-row" @click="toggle" :style="{paddingLeft: (depth * 16 + 8) + \'px\'}">'
+                + '<div class="jt-row" @mousedown="onMouseDown" @mouseup="onMouseUp" :style="{paddingLeft: (depth * 16 + 8) + \'px\'}">'
                 + '<span class="jt-arrow" v-if="node.hasChildren">{{ expanded ? \'▼\' : \'▶\' }}</span>'
                 + '<span class="jt-arrow jt-arrow-empty" v-else>▶</span>'
                 + '<span class="jt-key">{{ node.key }}</span>'
