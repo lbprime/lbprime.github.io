@@ -674,10 +674,16 @@
 
                 function escapeJson() {
                     if (!jsonText.value) return;
+
+                    // 预处理：如果输入没有被引号包裹，先加上外层引号
+                    var input = jsonText.value;
+                    try { JSON.parse(input); } catch (_) { input = '"' + input + '"'; }
+
+                    // 正常转义逻辑
                     try {
-                        const obj = JSON.parse(jsonText.value);
+                        var obj = JSON.parse(input);
                         parsedJson.value = obj;
-                        let escaped = JSON.stringify(JSON.stringify(obj));
+                        var escaped = JSON.stringify(JSON.stringify(obj));
                         if (autoFormat.value) {
                             try { escaped = JSON.stringify(JSON.parse(escaped), null, 2); } catch (_) { }
                         }
@@ -685,7 +691,7 @@
                         setStatus('转义完成');
                     } catch (e) {
                         try {
-                            const escaped = JSON.stringify(jsonText.value);
+                            var escaped = JSON.stringify(jsonText.value);
                             setResult(escaped, '转义完成（文本模式）');
                             setStatus('转义完成（文本模式）');
                         } catch (e2) {
@@ -696,13 +702,19 @@
 
                 function unescapeJson() {
                     if (!jsonText.value) return;
+
+                    // 预处理：如果输入没有被引号包裹，先加上外层引号
+                    var input = jsonText.value;
+                    try { JSON.parse(input); } catch (_) { input = '"' + input + '"'; }
+
+                    // 正常去转义逻辑
                     try {
-                        const parsed = JSON.parse(jsonText.value);
+                        var parsed = JSON.parse(input);
                         if (typeof parsed === 'string') {
-                            let result = parsed;
+                            var result = parsed;
                             if (autoFormat.value) {
                                 try {
-                                    const obj = JSON.parse(parsed);
+                                    var obj = JSON.parse(parsed);
                                     parsedJson.value = obj;
                                     result = JSON.stringify(obj, null, 2);
                                 } catch (_) {
