@@ -648,10 +648,301 @@
                     resultStatus.value = '操作失败';
                 }
 
+                // 移除 JSON 中的注释（// 和 /* */），保留字符串内容不变
+                function stripJsonComments(text) {
+                    var result = '';
+                    var i = 0;
+                    while (i < text.length) {
+                        var ch = text[i];
+                        // 字符串 — 原样保留
+                        if (ch === '"') {
+                            result += ch; i++;
+                            while (i < text.length) {
+                                if (text[i] === '\\') { result += text[i] + (text[i + 1] || ''); i += 2; continue; }
+                                if (text[i] === '"') { result += text[i]; i++; break; }
+                                result += text[i]; i++;
+                            }
+                            continue;
+                        }
+                        // 行注释 //
+                        if (ch === '/' && text[i + 1] === '/') {
+                            i += 2;
+                            while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++;
+                            continue;
+                        }
+                        // 块注释 /* */
+                        if (ch === '/' && text[i + 1] === '*') {
+                            i += 2;
+                            while (i < text.length) {
+                                if (text[i] === '*' && text[i + 1] === '/') { i += 2; break; }
+                                i++;
+                            }
+                            continue;
+                        }
+                        result += ch; i++;
+                    }
+                    return result;
+                }
+
+                // Tokenize JSON 文本，返回 token 数组
+                // 每个 token: { type, value, newlineBefore }
+                // newlineBefore 用于判断注释是独立行注释还是行尾注释
+                function tokenizeJson(text) {
+                    var tokens = [];
+                    var i = 0;
+                    var len = text.length;
+                    var hadNewline = true; // 文件开头视为"新行"
+
+                    while (i < len) {
+                        var ch = text[i];
+
+                        // 跳过空白，跟踪是否包含换行
+                        if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
+                            var hasNL = false;
+                            while (i < len && (text[i] === ' ' || text[i] === '\t' || text[i] === '\n' || text[i] === '\r')) {
+                                if (text[i] === '\n' || text[i] === '\r') hasNL = true;
+                                i++;
+                            }
+                            if (hasNL) hadNewline = true;
+                            continue;
+                        }
+
+                        var token = { type: '', value: '', newlineBefore: hadNewline };
+                        hadNewline = false;
+
+                        // 行注释 //
+                        if (ch === '/' && i + 1 < len && text[i + 1] === '/') {
+                            var start = i;
+                            i += 2;
+                            while (i < len && text[i] !== '\n' && text[i] !== '\r') i++;
+                            token.type = 'LINE_COMMENT';
+                            token.value = text.slice(start, i);
+                            tokens.push(token);
+                            continue;
+                        }
+
+                        // 块注释 /* */
+                        if (ch === '/' && i + 1 < len && text[i + 1] === '*') {
+                            var start = i;
+                            var nlines = false;
+                            i += 2;
+                            while (i < len) {
+                                if (text[i] === '\n') nlines = true;
+                                if (text[i] === '*' && i + 1 < len && text[i + 1] === '/') { i += 2; break; }
+                                i++;
+                            }
+                            token.type = 'BLOCK_COMMENT';
+                            token.value = text.slice(start, i);
+                            // 多行块注释视为独立行注释
+                            if (nlines) token.newlineBefore = true;
+                            tokens.push(token);
+                            continue;
+                        }
+
+                        // 字符串
+                        if (ch === '"') {
+                            var start = i;
+                            i++;
+                            while (i < len) {
+                                if (text[i] === '\\') { i += 2; continue; }
+                                if (text[i] === '"') { i++; break; }
+                                i++;
+                            }
+                            token.type = 'STRING';
+                            token.value = text.slice(start, i);
+                            tokens.push(token);
+                            continue;
+                        }
+
+                        // 数字
+                        if (/[0-9\-]/.test(ch)) {
+                            var start = i;
+                            if (ch === '-') i++;
+                            while (i < len && /[0-9]/.test(text[i])) i++;
+                            if (i < len && text[i] === '.') { i++; while (i < len && /[0-9]/.test(text[i])) i++; }
+                            if (i < len && (text[i] === 'e' || text[i] === 'E')) {
+                                i++;
+                                if (i < len && (text[i] === '+' || text[i] === '-')) i++;
+                                while (i < len && /[0-9]/.test(text[i])) i++;
+                            }
+                            token.type = 'NUMBER';
+                            token.value = text.slice(start, i);
+                            tokens.push(token);
+                            continue;
+                        }
+
+                        // 关键字
+                        if (text.slice(i, i + 4) === 'true')  { token.type = 'TRUE'; token.value = 'true'; i += 4; tokens.push(token); continue; }
+                        if (text.slice(i, i + 5) === 'false') { token.type = 'FALSE'; token.value = 'false'; i += 5; tokens.push(token); continue; }
+                        if (text.slice(i, i + 4) === 'null')  { token.type = 'NULL'; token.value = 'null'; i += 4; tokens.push(token); continue; }
+
+                        // 结构字符
+                        var structMap = { '{': 'LBRACE', '}': 'RBRACE', '[': 'LBRACKET', ']': 'RBRACKET', ':': 'COLON', ',': 'COMMA' };
+                        if (structMap[ch]) {
+                            token.type = structMap[ch];
+                            token.value = ch;
+                            i++;
+                            tokens.push(token);
+                            continue;
+                        }
+
+                        // 无法识别的字符，跳过
+                        i++;
+                    }
+                    return tokens;
+                }
+
+                // 格式化 JSON 并保留注释
+                // 成功返回格式化后的字符串，失败返回 null
+                function formatJsonKeepComments(rawText) {
+                    var tokens = tokenizeJson(rawText);
+
+                    // 验证：去掉注释后是否为合法 JSON
+                    var cleaned = '';
+                    for (var ti = 0; ti < tokens.length; ti++) {
+                        if (tokens[ti].type !== 'LINE_COMMENT' && tokens[ti].type !== 'BLOCK_COMMENT') {
+                            cleaned += tokens[ti].value;
+                        }
+                    }
+                    try { JSON.parse(cleaned); } catch (e) { return null; }
+
+                    // 预处理：把行内注释（newlineBefore=false）绑定到前一个非注释 token
+                    var processed = [];
+                    for (var ti = 0; ti < tokens.length; ti++) {
+                        var t = tokens[ti];
+                        if ((t.type === 'LINE_COMMENT' || t.type === 'BLOCK_COMMENT') && !t.newlineBefore) {
+                            // 找到前面最近的非注释 token，把注释挂上去
+                            for (var pi = processed.length - 1; pi >= 0; pi--) {
+                                if (processed[pi].type !== 'LINE_COMMENT' && processed[pi].type !== 'BLOCK_COMMENT') {
+                                    if (!processed[pi].inlineComments) processed[pi].inlineComments = [];
+                                    processed[pi].inlineComments.push(t);
+                                    break;
+                                }
+                            }
+                        } else {
+                            processed.push(t);
+                        }
+                    }
+
+                    // 重建格式化输出
+                    var out = '';
+                    var indent = 0;
+                    var IND = '  ';
+                    var NL = '\n';
+                    var atNewline = false;
+                    var pendingOwnLine = [];   // 独立行注释
+
+                    function emitIndent() {
+                        for (var j = 0; j < indent; j++) out += IND;
+                    }
+
+                    function flushOwnLineComments() {
+                        for (var c = 0; c < pendingOwnLine.length; c++) {
+                            emitIndent();
+                            out += pendingOwnLine[c].value;
+                            out += NL;
+                        }
+                        pendingOwnLine = [];
+                    }
+
+                    function emitInlineComments(token) {
+                        if (!token.inlineComments) return;
+                        for (var c = 0; c < token.inlineComments.length; c++) {
+                            out += ' ' + token.inlineComments[c].value;
+                        }
+                    }
+
+                    for (var ti = 0; ti < processed.length; ti++) {
+                        var t = processed[ti];
+
+                        // 独立行注释 — 暂存
+                        if (t.type === 'LINE_COMMENT' || t.type === 'BLOCK_COMMENT') {
+                            pendingOwnLine.push(t);
+                            continue;
+                        }
+
+                        switch (t.type) {
+                            case 'LBRACE':
+                                flushOwnLineComments();
+                                if (ti > 0) { out += NL; }
+                                emitIndent();
+                                out += '{';
+                                emitInlineComments(t);
+                                indent++;
+                                out += NL;
+                                atNewline = true;
+                                break;
+
+                            case 'LBRACKET':
+                                flushOwnLineComments();
+                                if (ti > 0) { out += NL; }
+                                emitIndent();
+                                out += '[';
+                                emitInlineComments(t);
+                                indent++;
+                                out += NL;
+                                atNewline = true;
+                                break;
+
+                            case 'RBRACE':
+                            case 'RBRACKET':
+                                flushOwnLineComments();
+                                indent--;
+                                out += NL;
+                                emitIndent();
+                                out += t.value;
+                                emitInlineComments(t);
+                                atNewline = false;
+                                break;
+
+                            case 'COMMA':
+                                out += ',';
+                                emitInlineComments(t);
+                                out += NL;
+                                atNewline = true;
+                                break;
+
+                            case 'COLON':
+                                flushOwnLineComments();
+                                out += ': ';
+                                emitInlineComments(t);
+                                atNewline = false;
+                                break;
+
+                            default:
+                                // STRING, NUMBER, TRUE, FALSE, NULL
+                                flushOwnLineComments();
+                                if (atNewline) {
+                                    emitIndent();
+                                }
+                                out += t.value;
+                                emitInlineComments(t);
+                                atNewline = false;
+                                break;
+                        }
+                    }
+
+                    // 收尾：输出文件末尾的独立行注释
+                    flushOwnLineComments();
+
+                    return out.trim();
+                }
+
                 function formatJson() {
                     if (!jsonText.value) return;
                     try {
-                        const obj = JSON.parse(jsonText.value);
+                        // 优先尝试保留注释的格式化
+                        var formatted = formatJsonKeepComments(jsonText.value);
+                        if (formatted !== null) {
+                            var cleaned = stripJsonComments(jsonText.value);
+                            parsedJson.value = JSON.parse(cleaned);
+                            setResult(formatted, '格式化完成（保留注释）');
+                            setStatus('格式化完成');
+                            return;
+                        }
+                        // 回退：去注释后标准格式化
+                        var stripped = stripJsonComments(jsonText.value);
+                        const obj = JSON.parse(stripped);
                         parsedJson.value = obj;
                         setResult(JSON.stringify(obj, null, 2), '格式化完成');
                         setStatus('格式化完成');
@@ -663,7 +954,8 @@
                 function compressJson() {
                     if (!jsonText.value) return;
                     try {
-                        const obj = JSON.parse(jsonText.value);
+                        var stripped = stripJsonComments(jsonText.value);
+                        const obj = JSON.parse(stripped);
                         parsedJson.value = obj;
                         setResult(JSON.stringify(obj), '压缩完成');
                         setStatus('压缩完成');
@@ -675,8 +967,10 @@
                 function escapeJson() {
                     if (!jsonText.value) return;
 
+                    // 先去注释
+                    var input = stripJsonComments(jsonText.value);
+
                     // 预处理：如果输入没有被引号包裹，先加上外层引号
-                    var input = jsonText.value;
                     try { JSON.parse(input); } catch (_) { input = '"' + input + '"'; }
 
                     // 正常转义逻辑
@@ -703,8 +997,10 @@
                 function unescapeJson() {
                     if (!jsonText.value) return;
 
+                    // 先去注释
+                    var input = stripJsonComments(jsonText.value);
+
                     // 预处理：如果输入没有被引号包裹，先加上外层引号
-                    var input = jsonText.value;
                     try { JSON.parse(input); } catch (_) { input = '"' + input + '"'; }
 
                     // 正常去转义逻辑
