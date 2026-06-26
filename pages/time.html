@@ -560,14 +560,23 @@
                                 </div>
 
                                 <div class="diff-date-row">
+                                    <span class="label-text">类型</span>
+                                    <el-radio-group v-model="diffDateType" size="small">
+                                        <el-radio-button value="date">日期</el-radio-button>
+                                        <el-radio-button value="datetime">时间</el-radio-button>
+                                    </el-radio-group>
+                                </div>
+
+                                <div class="diff-date-row">
                                     <span class="label-text">开始</span>
-                                    <el-date-picker v-model="diffStart" type="date" placeholder="开始日期"
-                                        format="YYYY-MM-DD" value-format="YYYY-MM-DD"
-                                        style="width:200px;"></el-date-picker>
+                                    <el-date-picker v-model="diffStart" :type="diffDateType" :placeholder="diffDateType === 'date' ? '开始日期' : '开始日期时间'"
+                                        :format="diffDateFormat" :value-format="diffDateFormat"
+                                        style="width:240px;"></el-date-picker>
                                     <span class="diff-swap-btn" @click="swapDates" title="交换日期">⇄</span>
                                     <span class="label-text">截止</span>
-                                    <el-date-picker v-model="diffEnd" type="date" placeholder="截止日期" format="YYYY-MM-DD"
-                                        value-format="YYYY-MM-DD" style="width:200px;"></el-date-picker>
+                                    <el-date-picker v-model="diffEnd" :type="diffDateType" :placeholder="diffDateType === 'date' ? '截止日期' : '截止日期时间'"
+                                        :format="diffDateFormat" :value-format="diffDateFormat"
+                                        style="width:240px;"></el-date-picker>
                                 </div>
 
                                 <div class="diff-options">
@@ -657,14 +666,44 @@
                 function toDateStr(d) {
                     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                 }
-                function parseDateStr(str) {
-                    var parts = str.split('-');
-                    return new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+                function toDateTimeStr(d) {
+                    return toDateStr(d) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
+                }
+                function parseDateTimeStr(str) {
+                    if (!str) return new Date(NaN);
+                    // "YYYY-MM-DD" 或 "YYYY-MM-DD HH:mm:ss"
+                    var datePart = str.substring(0, 10);
+                    var timePart = str.length >= 19 ? str.substring(11, 19) : '00:00:00';
+                    var dp = datePart.split('-');
+                    var tp = timePart.split(':');
+                    return new Date(Date.UTC(
+                        parseInt(dp[0]), parseInt(dp[1]) - 1, parseInt(dp[2]),
+                        parseInt(tp[0]) || 0, parseInt(tp[1]) || 0, parseInt(tp[2]) || 0
+                    ));
+                }
+                // 根据当前 diffDateType 格式化日期值
+                function diffDateValue(d) {
+                    return diffDateType.value === 'datetime' ? toDateTimeStr(d) : toDateStr(d);
                 }
                 const now = new Date();
-                const diffStart = ref(toDateStr(now));
-                const diffEnd = ref(toDateStr(now));
+                const diffDateType = ref('date');
+                const diffDateFormat = computed(function () {
+                    return diffDateType.value === 'datetime' ? 'YYYY-MM-DD HH:mm:ss' : 'YYYY-MM-DD';
+                });
+                const diffStart = ref(diffDateValue(now));
+                const diffEnd = ref(diffDateValue(now));
                 const diffUnit = ref('auto');
+
+                // 切换日期类型时转换已有值
+                Vue.watch(diffDateType, function (newType) {
+                    if (newType === 'datetime') {
+                        if (diffStart.value && diffStart.value.length === 10) diffStart.value = diffStart.value + ' 00:00:00';
+                        if (diffEnd.value && diffEnd.value.length === 10) diffEnd.value = diffEnd.value + ' 00:00:00';
+                    } else {
+                        if (diffStart.value && diffStart.value.length > 10) diffStart.value = diffStart.value.substring(0, 10);
+                        if (diffEnd.value && diffEnd.value.length > 10) diffEnd.value = diffEnd.value.substring(0, 10);
+                    }
+                });
 
                 const statusText = ref('');
                 const donateVisible = ref(false);
@@ -795,7 +834,18 @@
                         if (r.remainDays > 0) parts.push(r.remainDays + '天');
                         return prefix + parts.join('+');
                     }
-                    return prefix + r.totalDays + '天';
+                    // 不足1天：回退到小时/分钟/秒
+                    var absH = Math.abs(r.totalHours);
+                    var absM = Math.abs(r.totalMinutes);
+                    if (absH >= 1) {
+                        var remM = absM % 60;
+                        return prefix + absH + '小时' + (remM > 0 ? '+' + remM + '分钟' : '');
+                    }
+                    if (absM >= 1) {
+                        var remS = Math.abs(r.totalSeconds) % 60;
+                        return prefix + absM + '分钟' + (remS > 0 ? '+' + remS + '秒' : '');
+                    }
+                    return prefix + Math.abs(r.totalSeconds) + '秒';
                 }
 
                 // 手动选择"年"单位：强制展示年+月+天（即使年为0也尝试展示月）
@@ -837,9 +887,9 @@
                 const dateDiffResult = computed(function () {
                     if (!diffStart.value || !diffEnd.value) return null;
 
-                    // 用 UTC 午夜计算，避免夏令时导致跨天误差
-                    const start = parseDateStr(diffStart.value);
-                    const end = parseDateStr(diffEnd.value);
+                    // 解析日期/时间字符串（支持 YYYY-MM-DD 和 YYYY-MM-DD HH:mm:ss）
+                    const start = parseDateTimeStr(diffStart.value);
+                    const end = parseDateTimeStr(diffEnd.value);
 
                     const diffMs = end.getTime() - start.getTime();
                     const sign = diffMs >= 0 ? 1 : -1;
@@ -884,9 +934,13 @@
                         case 'days':
                             return prefix + r.totalDays + ' 天';
                         case 'hours':
-                            return prefix + r.totalHours + ' 小时';
+                            var h = Math.abs(r.totalHours);
+                            var hm = Math.abs(r.totalMinutes) % 60;
+                            return prefix + h + ' 小时' + (hm > 0 ? '+' + hm + ' 分钟' : '');
                         case 'minutes':
-                            return prefix + r.totalMinutes + ' 分钟';
+                            var m = Math.abs(r.totalMinutes);
+                            var ms = Math.abs(r.totalSeconds) % 60;
+                            return prefix + m + ' 分钟' + (ms > 0 ? '+' + ms + ' 秒' : '');
                         case 'seconds':
                             return prefix + r.totalSeconds + ' 秒';
                         case 'auto':
@@ -901,7 +955,7 @@
 
                     // 含截止日期：在 totalDays 基础上 +1 天（同方向），重新计算日历差值
                     var inclusiveDays = r.totalDays + (r.totalDays >= 0 ? 1 : -1);
-                    var start = parseDateStr(diffStart.value);
+                    var start = parseDateTimeStr(diffStart.value);
                     var virtualEnd = new Date(start.getTime() + inclusiveDays * 86400000);
                     var inclusive = calcCalendarDiff(start, virtualEnd);
 
@@ -926,9 +980,13 @@
                         case 'days':
                             return prefix + (Math.abs(inclusive.totalDays) || 0) + ' 天';
                         case 'hours':
-                            return prefix + Math.abs(inclusive.totalHours) + ' 小时';
+                            var ih = Math.abs(inclusive.totalHours);
+                            var ihm = Math.abs(inclusive.totalMinutes) % 60;
+                            return prefix + ih + ' 小时' + (ihm > 0 ? '+' + ihm + ' 分钟' : '');
                         case 'minutes':
-                            return prefix + Math.abs(inclusive.totalMinutes) + ' 分钟';
+                            var im = Math.abs(inclusive.totalMinutes);
+                            var ims = Math.abs(inclusive.totalSeconds) % 60;
+                            return prefix + im + ' 分钟' + (ims > 0 ? '+' + ims + ' 秒' : '');
                         case 'seconds':
                             return prefix + Math.abs(inclusive.totalSeconds) + ' 秒';
                         case 'auto':
@@ -944,7 +1002,7 @@
                 }
 
                 function setToday() {
-                    const s = toDateStr(new Date());
+                    const s = diffDateValue(new Date());
                     diffStart.value = s;
                     diffEnd.value = s;
                 }
@@ -952,7 +1010,7 @@
                 function setYesterday() {
                     const d = new Date();
                     d.setDate(d.getDate() - 1);
-                    const s = toDateStr(d);
+                    const s = diffDateValue(d);
                     diffStart.value = s;
                     diffEnd.value = s;
                 }
@@ -962,44 +1020,45 @@
                     const dayOfWeek = nowDate.getDay();
                     const monday = new Date(nowDate);
                     monday.setDate(nowDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-                    diffStart.value = toDateStr(monday);
-                    diffEnd.value = toDateStr(nowDate);
+                    diffStart.value = diffDateValue(monday);
+                    diffEnd.value = diffDateValue(nowDate);
                 }
 
                 function setThisMonth() {
                     const nowDate = new Date();
                     const firstDay = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1);
-                    diffStart.value = toDateStr(firstDay);
-                    diffEnd.value = toDateStr(nowDate);
+                    diffStart.value = diffDateValue(firstDay);
+                    diffEnd.value = diffDateValue(nowDate);
                 }
 
                 function setLast7Days() {
                     const endDate = new Date();
                     const startDate = new Date(endDate);
                     startDate.setDate(endDate.getDate() - 6);
-                    diffStart.value = toDateStr(startDate);
-                    diffEnd.value = toDateStr(endDate);
+                    diffStart.value = diffDateValue(startDate);
+                    diffEnd.value = diffDateValue(endDate);
                 }
 
                 function setLast30Days() {
                     const endDate = new Date();
                     const startDate = new Date(endDate);
                     startDate.setDate(endDate.getDate() - 29);
-                    diffStart.value = toDateStr(startDate);
-                    diffEnd.value = toDateStr(endDate);
+                    diffStart.value = diffDateValue(startDate);
+                    diffEnd.value = diffDateValue(endDate);
                 }
 
                 function setLast90Days() {
                     const endDate = new Date();
                     const startDate = new Date(endDate);
                     startDate.setDate(endDate.getDate() - 89);
-                    diffStart.value = toDateStr(startDate);
-                    diffEnd.value = toDateStr(endDate);
+                    diffStart.value = diffDateValue(startDate);
+                    diffEnd.value = diffDateValue(endDate);
                 }
 
                 function setYouyouBirthday() {
-                    diffStart.value = '2026-03-04';
-                    diffEnd.value = toDateStr(new Date());
+                    diffDateType.value = 'datetime';
+                    diffStart.value = '2026-03-04 02:08:00';
+                    diffEnd.value = diffDateValue(new Date());
                 }
 
                 // === 通用 ===
@@ -1061,6 +1120,8 @@
                     tsInput,
                     tsInputUnit,
                     dateFormat,
+                    diffDateType,
+                    diffDateFormat,
                     diffStart,
                     diffEnd,
                     diffUnit,
