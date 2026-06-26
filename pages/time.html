@@ -575,26 +575,28 @@
                                         <span class="label-text">单位</span>
                                         <el-radio-group v-model="diffUnit" size="small">
                                             <el-radio-button value="auto">自动</el-radio-button>
+                                            <el-radio-button value="years">年</el-radio-button>
+                                            <el-radio-button value="months">月</el-radio-button>
+                                            <el-radio-button value="weeks">周</el-radio-button>
                                             <el-radio-button value="days">天</el-radio-button>
                                             <el-radio-button value="hours">小时</el-radio-button>
                                             <el-radio-button value="minutes">分钟</el-radio-button>
                                             <el-radio-button value="seconds">秒</el-radio-button>
                                         </el-radio-group>
                                     </div>
-                                    <el-checkbox v-model="diffInclusive" size="small">包含截止日期</el-checkbox>
                                 </div>
 
                                 <div class="time-result-area">
                                     <div class="time-result-label">计算结果
                                         <span style="font-weight:400;color:#909399;margin-left:8px;">
-                                            （{{ diffInclusive ? '含开始和截止，如 1月1日→1月3日 = 3天' : '含开始不含截止，如 1月1日→1月3日 = 2天（截止日期为第3天）' }}）
+                                            （含开始不含截止，如 1月1日→1月3日 = 2天）
                                         </span>
                                     </div>
                                     <div class="time-result-value" :class="{ placeholder: !dateDiffText }">
                                         {{ dateDiffText || '请选择开始日期和截止日期' }}
                                     </div>
                                     <div class="diff-result-detail" v-if="dateDiffText">
-                                        {{ dateDiffDetail }}
+                                        含截止日期：{{ dateDiffDetail }}
                                     </div>
                                     <div class="time-result-actions" style="margin-top:8px;">
                                         <el-button size="small" @click="copyDiffResult" :disabled="!dateDiffText">
@@ -663,7 +665,6 @@
                 const diffStart = ref(toDateStr(now));
                 const diffEnd = ref(toDateStr(now));
                 const diffUnit = ref('auto');
-                const diffInclusive = ref(false);
 
                 const statusText = ref('');
                 const donateVisible = ref(false);
@@ -744,6 +745,95 @@
                 });
 
                 // === 日期差值计算逻辑 ===
+
+                // 日历差值：计算两个日期之间的年、月、日（按实际日历）
+                function calcCalendarDiff(start, end) {
+                    var a = new Date(start.getTime());
+                    var b = new Date(end.getTime());
+                    var swap = false;
+                    if (b < a) { var t = a; a = b; b = t; swap = true; }
+
+                    var years = b.getFullYear() - a.getFullYear();
+                    var months = b.getMonth() - a.getMonth();
+                    var days = b.getDate() - a.getDate();
+
+                    if (days < 0) {
+                        months--;
+                        var prevMonth = new Date(b.getFullYear(), b.getMonth(), 0);
+                        days += prevMonth.getDate();
+                    }
+                    if (months < 0) {
+                        years--;
+                        months += 12;
+                    }
+
+                    var totalMs = b.getTime() - a.getTime();
+                    var totalDays = Math.floor(totalMs / 86400000);
+                    var weeks = Math.floor(totalDays / 7);
+                    var remainDays = totalDays % 7;
+
+                    var sign = swap ? -1 : 1;
+                    return { sign: sign, years: years, months: months, days: days, weeks: weeks, remainDays: remainDays, totalDays: totalDays, totalMs: totalMs };
+                }
+
+                // 格式化日历差值文本
+                function formatCalendarText(r) {
+                    var prefix = r.sign < 0 ? '−' : '';
+                    if (r.years > 0) {
+                        var parts = [r.years + '年'];
+                        if (r.months > 0) parts.push(r.months + '月');
+                        if (r.days > 0) parts.push(r.days + '天');
+                        return prefix + parts.join('+');
+                    }
+                    if (r.months > 0) {
+                        var parts = [r.months + '月'];
+                        if (r.days > 0) parts.push(r.days + '天');
+                        return prefix + parts.join('+');
+                    }
+                    if (r.weeks > 0) {
+                        var parts = [r.weeks + '周'];
+                        if (r.remainDays > 0) parts.push(r.remainDays + '天');
+                        return prefix + parts.join('+');
+                    }
+                    return prefix + r.totalDays + '天';
+                }
+
+                // 手动选择"年"单位：强制展示年+月+天（即使年为0也尝试展示月）
+                function formatYearsText(r) {
+                    var prefix = r.sign < 0 ? '−' : '';
+                    if (r.years === 0 && r.months === 0) {
+                        return prefix + r.totalDays + '天';
+                    }
+                    var parts = [];
+                    if (r.years > 0) parts.push(r.years + '年');
+                    if (r.months > 0) parts.push(r.months + '月');
+                    if (r.days > 0) parts.push(r.days + '天');
+                    return prefix + parts.join('+');
+                }
+
+                // 手动选择"月"单位：展示总月数+余天
+                function formatMonthsText(r) {
+                    var prefix = r.sign < 0 ? '−' : '';
+                    var totalMonths = r.years * 12 + r.months;
+                    if (totalMonths === 0) {
+                        return prefix + r.totalDays + '天';
+                    }
+                    var parts = [totalMonths + '月'];
+                    if (r.days > 0) parts.push(r.days + '天');
+                    return prefix + parts.join('+');
+                }
+
+                // 手动选择"周"单位：展示周数+余天
+                function formatWeeksText(r) {
+                    var prefix = r.sign < 0 ? '−' : '';
+                    if (r.weeks === 0) {
+                        return prefix + r.totalDays + '天';
+                    }
+                    var parts = [r.weeks + '周'];
+                    if (r.remainDays > 0) parts.push(r.remainDays + '天');
+                    return prefix + parts.join('+');
+                }
+
                 const dateDiffResult = computed(function () {
                     if (!diffStart.value || !diffEnd.value) return null;
 
@@ -751,29 +841,30 @@
                     const start = parseDateStr(diffStart.value);
                     const end = parseDateStr(diffEnd.value);
 
-                    let diffMs = end.getTime() - start.getTime();
-                    if (diffInclusive.value) {
-                        diffMs += diffMs >= 0 ? 86400000 : -86400000;
-                    }
-
+                    const diffMs = end.getTime() - start.getTime();
                     const sign = diffMs >= 0 ? 1 : -1;
                     const absMs = Math.abs(diffMs);
 
                     const absSeconds = Math.floor(absMs / 1000);
                     const absMinutes = Math.floor(absSeconds / 60);
                     const absHours = Math.floor(absMinutes / 60);
-                    const absDays = Math.floor(absHours / 24);
+
+                    // 日历差值
+                    const cal = calcCalendarDiff(start, end);
 
                     return {
                         sign: sign,
-                        days: absDays,
-                        hours: absHours % 24,
-                        minutes: absMinutes % 60,
-                        seconds: absSeconds % 60,
-                        totalDays: absDays * sign,
+                        totalMs: diffMs,
+                        totalDays: cal.totalDays * sign,
                         totalHours: absHours * sign,
                         totalMinutes: absMinutes * sign,
-                        totalSeconds: absSeconds * sign
+                        totalSeconds: absSeconds * sign,
+                        // 日历字段
+                        years: cal.years,
+                        months: cal.months,
+                        days: cal.days,
+                        weeks: cal.weeks,
+                        remainDays: cal.remainDays
                     };
                 });
 
@@ -784,6 +875,12 @@
                     const unit = diffUnit.value;
 
                     switch (unit) {
+                        case 'years':
+                            return formatYearsText(r);
+                        case 'months':
+                            return formatMonthsText(r);
+                        case 'weeks':
+                            return formatWeeksText(r);
                         case 'days':
                             return prefix + r.totalDays + ' 天';
                         case 'hours':
@@ -794,15 +891,7 @@
                             return prefix + r.totalSeconds + ' 秒';
                         case 'auto':
                         default:
-                            if (r.days >= 1) {
-                                return (r.sign < 0 ? '−' : '') + r.days + ' 天';
-                            } else if (r.totalHours !== 0 && Math.abs(r.totalHours) >= 1) {
-                                return prefix + r.totalHours + ' 小时';
-                            } else if (r.totalMinutes !== 0 && Math.abs(r.totalMinutes) >= 1) {
-                                return prefix + r.totalMinutes + ' 分钟';
-                            } else {
-                                return prefix + r.totalSeconds + ' 秒';
-                            }
+                            return formatCalendarText(r);
                     }
                 });
 
@@ -810,18 +899,42 @@
                     const r = dateDiffResult.value;
                     if (!r) return '';
 
-                    const parts = [];
-                    if (r.days > 0) parts.push(r.days + '天');
-                    if (r.hours > 0) parts.push(r.hours + '小时');
-                    if (r.minutes > 0) parts.push(r.minutes + '分钟');
-                    if (r.seconds > 0) parts.push(r.seconds + '秒');
-                    if (parts.length === 0) parts.push('0天');
+                    // 含截止日期：在 totalDays 基础上 +1 天（同方向），重新计算日历差值
+                    var inclusiveDays = r.totalDays + (r.totalDays >= 0 ? 1 : -1);
+                    var start = parseDateStr(diffStart.value);
+                    var virtualEnd = new Date(start.getTime() + inclusiveDays * 86400000);
+                    var inclusive = calcCalendarDiff(start, virtualEnd);
 
-                    let detail = parts.join(' ');
-                    if (r.sign < 0) {
-                        detail += ' （开始日期晚于截止日期）';
+                    // 同步 totalHours/totalMinutes/totalSeconds 给 小时/分钟/秒 单位使用
+                    inclusive.totalHours = Math.abs(r.totalHours) + (r.totalHours >= 0 ? 24 : -24);
+                    if (r.totalHours < 0) inclusive.totalHours = -inclusive.totalHours;
+                    inclusive.totalMinutes = Math.abs(r.totalMinutes) + (r.totalMinutes >= 0 ? 1440 : -1440);
+                    if (r.totalMinutes < 0) inclusive.totalMinutes = -inclusive.totalMinutes;
+                    inclusive.totalSeconds = Math.abs(r.totalSeconds) + (r.totalSeconds >= 0 ? 86400 : -86400);
+                    if (r.totalSeconds < 0) inclusive.totalSeconds = -inclusive.totalSeconds;
+
+                    // 使用与 dateDiffText 相同的格式化逻辑
+                    var prefix = inclusive.sign < 0 ? '−' : '';
+                    var unit = diffUnit.value;
+                    switch (unit) {
+                        case 'years':
+                            return formatYearsText(inclusive);
+                        case 'months':
+                            return formatMonthsText(inclusive);
+                        case 'weeks':
+                            return formatWeeksText(inclusive);
+                        case 'days':
+                            return prefix + (Math.abs(inclusive.totalDays) || 0) + ' 天';
+                        case 'hours':
+                            return prefix + Math.abs(inclusive.totalHours) + ' 小时';
+                        case 'minutes':
+                            return prefix + Math.abs(inclusive.totalMinutes) + ' 分钟';
+                        case 'seconds':
+                            return prefix + Math.abs(inclusive.totalSeconds) + ' 秒';
+                        case 'auto':
+                        default:
+                            return formatCalendarText(inclusive);
                     }
-                    return detail;
                 });
 
                 function swapDates() {
@@ -887,7 +1000,6 @@
                 function setYouyouBirthday() {
                     diffStart.value = '2026-03-04';
                     diffEnd.value = toDateStr(new Date());
-                    diffInclusive.value = true;
                 }
 
                 // === 通用 ===
@@ -952,7 +1064,6 @@
                     diffStart,
                     diffEnd,
                     diffUnit,
-                    diffInclusive,
                     statusText,
                     donateVisible,
                     tsInputUnitLabel,
