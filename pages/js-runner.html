@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LBN-JS Runner</title>
-<meta name="description" content="LBN在线JS代码运行工具 - 支持HTML/CSS/JS三栏编辑，实时预览运行结果，捕获console输出，语法检测高亮。前端开发者调试代码片段、快速验证想法的必备在线工具。">
-<meta name="keywords" content="JS运行,JavaScript在线运行,HTML预览,在线代码编辑器,代码调试,JS调试,HTML编辑器,CSS编辑器,代码沙箱,code playground,在线IDE,开发者工具,LBN,万能网站,前端工具">
+<meta name="description" content="LBN在线代码运行工具 - 在编辑器中编写HTML/CSS/JS，右侧实时预览运行结果。支持代码格式化、压缩。前端开发者的在线Playground。">
+<meta name="keywords" content="JS运行,JavaScript在线运行,HTML预览,在线代码编辑器,代码调试,代码沙箱,code playground,在线IDE,开发者工具,LBN,万能网站,前端工具">
 <meta property="og:title" content="LBN-JS Runner - 在线代码运行与调试工具">
-<meta property="og:description" content="免费在线JS代码运行工具，支持HTML/CSS/JS三栏编辑、实时预览、console捕获、语法检测。">
+<meta property="og:description" content="免费在线代码运行工具，支持HTML/CSS/JS混合编辑、实时预览。">
 <meta property="og:url" content="https://lbprime.github.io/pages/js-runner.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="LBN万能网站">
@@ -17,15 +17,14 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="LBN-JS Runner - 在线代码运行与调试工具">
-<meta name="twitter:description" content="免费在线JS代码运行工具，HTML/CSS/JS三栏编辑、实时预览、console捕获。">
+<meta name="twitter:description" content="免费在线代码运行工具，HTML/CSS/JS混合编辑、实时预览。">
 <meta name="twitter:image" content="https://lbprime.github.io/assets/images/og-image.png">
 <link rel="canonical" href="https://lbprime.github.io/pages/js-runner.html">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"LBN JS Runner","url":"https://lbprime.github.io/pages/js-runner.html","description":"在线HTML/CSS/JS代码运行与调试工具，支持实时预览、语法检测。","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"LBN JS Runner","url":"https://lbprime.github.io/pages/js-runner.html","description":"在线HTML/CSS/JS代码运行与调试工具，支持实时预览。","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 
 <link rel="stylesheet" href="/assets/libs/codemirror/codemirror.min.css">
 <link rel="stylesheet" href="/assets/libs/codemirror/theme/dracula.min.css">
-<link rel="stylesheet" href="/assets/libs/codemirror/addon/lint/lint.min.css">
 <link rel="stylesheet" href="/assets/libs/codemirror/addon/fold/foldgutter.min.css">
 
 <style>
@@ -49,15 +48,12 @@
   --success-hover:  #5daf34;
   --danger:         #f56c6c;
   --warning:        #e6a23c;
-  --warning-bg:     #fdf6ec;
-  --danger-bg:      #fef0f0;
   --shadow:         0 1px 3px rgba(0,0,0,0.06);
   --radius:         4px;
   --font-code:      'Cascadia Code','Fira Code','JetBrains Mono','SF Mono',Consolas,'Liberation Mono',monospace;
   --font-ui:        -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
   --header-h:       48px;
   --footer-h:       26px;
-  --tabs-h:         34px;
   --divider-w:      5px;
   --transition:     0.15s ease;
 }
@@ -81,8 +77,6 @@
   --success-hover:  #2ea043;
   --danger:         #f85149;
   --warning:        #d29922;
-  --warning-bg:     #29230e;
-  --danger-bg:      #2d1215;
 }
 
 /* ===== Reset & Full-height Layout ===== */
@@ -159,41 +153,17 @@ body{
   width:50%;display:flex;flex-direction:column;min-width:0;
   border-right:1px solid var(--border);
 }
-.runner-tabs{
-  display:flex;align-items:stretch;height:var(--tabs-h);
-  background:var(--card-bg);border-bottom:1px solid var(--border);
-  flex-shrink:0;user-select:none;
-}
-.runner-tab{
-  display:inline-flex;align-items:center;gap:4px;padding:0 14px;height:100%;
-  border:none;border-bottom:2px solid transparent;background:transparent;
-  color:var(--text-secondary);font-size:12px;font-family:var(--font-ui);
-  cursor:pointer;transition:all var(--transition);white-space:nowrap;
-}
-.runner-tab:hover{color:var(--text-primary);background:var(--panel-bg)}
-.runner-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-.runner-tab-hint{font-size:10px;color:var(--text-muted);opacity:0.6}
-.badge{
-  font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;
-  line-height:1.5;min-width:18px;text-align:center;
-}
-.badge.error{background:var(--danger-bg);color:var(--danger)}
-.badge.warn{background:var(--warning-bg);color:var(--warning)}
-.badge.hidden{display:none}
-
 .editor-body{flex:1;min-height:0;overflow:hidden}
-.editor-pane{display:none;height:100%}
-.editor-pane.active{display:block}
 
 /* CodeMirror overrides */
-.editor-pane .CodeMirror{
+.editor-body .CodeMirror{
   height:100%!important;font-family:var(--font-code);font-size:13px;
   line-height:1.6;background:var(--panel-bg);color:var(--text-primary);
 }
-.editor-pane .CodeMirror-gutters{background:var(--line-num-bg);border-right:1px solid var(--border-light)}
-.editor-pane .CodeMirror-linenumber{color:var(--text-placeholder)}
-.editor-pane .CodeMirror-cursor{border-left-color:var(--text-primary)}
-.editor-pane .CodeMirror-activeline-background{background:var(--accent-light)}
+.editor-body .CodeMirror-gutters{background:var(--line-num-bg);border-right:1px solid var(--border-light)}
+.editor-body .CodeMirror-linenumber{color:var(--text-placeholder)}
+.editor-body .CodeMirror-cursor{border-left-color:var(--text-primary)}
+.editor-body .CodeMirror-activeline-background{background:var(--accent-light)}
 
 /* ===== Horizontal Resize (editor | output) ===== */
 .resize-handle{
@@ -206,47 +176,12 @@ body{
 
 /* ===== Output Panel ===== */
 .panel-output{flex:1;display:flex;flex-direction:column;min-width:0}
-
-.output-preview{
-  height:65%;min-height:60px;overflow:hidden;display:flex;flex-direction:column;
-  will-change:height;position:relative;
-}
+.output-preview{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
 .preview-frame{flex:1;width:100%;border:none;background:#fff}
-
-/* Vertical divider (preview | console) */
-.output-divider{
-  height:var(--divider-w);min-height:var(--divider-w);cursor:row-resize;
-  background:var(--border);flex-shrink:0;transition:background var(--transition);
-  z-index:5;
-}
-.output-divider:hover,.output-divider.active{background:var(--accent)}
 
 /* Disable pointer events on iframe during resize */
 .resize-active .preview-frame{pointer-events:none!important}
 .resize-active{user-select:none!important;-webkit-user-select:none!important}
-
-.output-console{
-  flex:1;min-height:40px;display:flex;flex-direction:column;overflow:hidden;
-}
-.console-header{
-  display:flex;align-items:center;justify-content:space-between;
-  height:26px;padding:0 10px;background:var(--card-bg);
-  border-bottom:1px solid var(--border);flex-shrink:0;
-  font-size:11px;font-weight:600;color:var(--text-secondary);user-select:none;
-}
-.console-body{flex:1;overflow-y:auto;background:var(--panel-bg);font-family:var(--font-code);font-size:12px;line-height:1.5}
-.console-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-placeholder);font-family:var(--font-ui);font-size:13px}
-.console-entry{display:flex;padding:2px 10px;border-bottom:1px solid transparent}
-.console-entry:hover{background:var(--line-num-bg)}
-.console-method{flex-shrink:0;width:38px;font-weight:700;font-size:10px;text-transform:uppercase;margin-right:6px;opacity:0.7}
-.console-method.log{color:var(--text-primary)}
-.console-method.info{color:var(--accent)}
-.console-method.warn{color:var(--warning)}
-.console-method.error{color:var(--danger)}
-.console-method.debug{color:var(--text-muted)}
-.console-body-text{flex:1;white-space:pre-wrap;word-break:break-all;color:var(--text-primary)}
-.console-entry.err{background:var(--danger-bg);border-bottom-color:var(--danger)}
-.console-entry.wrn{background:var(--warning-bg);border-bottom-color:var(--warning)}
 
 /* Donate dialog */
 .donate-dialog-overlay{
@@ -272,7 +207,7 @@ body{
   font-size:11px;color:var(--text-muted);flex-shrink:0;user-select:none;
 }
 .runner-footer .stats{display:flex;gap:16px}
-.runner-footer .stats span strong{color:var(--text-secondary);font-weight:600}
+.runner-footer .stats strong{color:var(--text-secondary);font-weight:600}
 
 /* ===== Responsive ===== */
 @media(max-width:768px){
@@ -282,7 +217,6 @@ body{
   .panel-output{height:52%}
   .resize-handle{width:100%;height:var(--divider-w);cursor:row-resize}
   .resize-overlay{cursor:row-resize}
-  .runner-tab-hint{display:none}
   .header-actions .btn span.btn-label{display:none}
 }
 </style>
@@ -299,8 +233,8 @@ body{
   </div>
   <div class="header-actions">
     <button class="btn btn-sm active" id="btn-auto" title="自动运行">Auto</button>
-    <button class="btn btn-sm" id="btn-format-js" title="格式化 JS (js-beautify)">Format JS</button>
-    <button class="btn btn-sm" id="btn-minify-js" title="压缩 JS (Terser)">Minify JS</button>
+    <button class="btn btn-sm" id="btn-format" title="格式化代码 (HTML+CSS+JS)">Format</button>
+    <button class="btn btn-sm" id="btn-minify" title="压缩代码 (HTML+CSS+JS)">Minify</button>
     <button class="btn btn-primary btn-sm" id="btn-run" title="运行 (Ctrl+Enter)">▶ <span class="btn-label">Run</span></button>
     <button class="btn btn-icon btn-sm" id="btn-theme" title="主题切换">☀</button>
     <a href="/" class="home-link" style="margin-left:4px">← 首页</a>
@@ -326,22 +260,7 @@ body{
 
   <!-- Editor Panel -->
   <div class="panel-editor" id="panel-editor">
-    <div class="runner-tabs" id="editor-tabs">
-      <button class="runner-tab active" data-pane="html">
-        HTML<span class="badge hidden" data-for="html">0</span><span class="runner-tab-hint">Ctrl+1</span>
-      </button>
-      <button class="runner-tab" data-pane="css">
-        CSS<span class="badge hidden" data-for="css">0</span><span class="runner-tab-hint">Ctrl+2</span>
-      </button>
-      <button class="runner-tab" data-pane="js">
-        JS<span class="badge hidden" data-for="js">0</span><span class="runner-tab-hint">Ctrl+3</span>
-      </button>
-    </div>
-    <div class="editor-body">
-      <div class="editor-pane active" id="pane-html"></div>
-      <div class="editor-pane" id="pane-css"></div>
-      <div class="editor-pane" id="pane-js"></div>
-    </div>
+    <div class="editor-body" id="editor-body"></div>
   </div>
 
   <!-- Horizontal Resize Handle -->
@@ -352,16 +271,6 @@ body{
   <div class="panel-output" id="panel-output">
     <div class="output-preview" id="output-preview">
       <iframe class="preview-frame" id="preview-iframe" sandbox="allow-scripts" title="Preview"></iframe>
-    </div>
-    <div class="output-divider" id="output-divider"></div>
-    <div class="output-console" id="output-console">
-      <div class="console-header">
-        <span>Console</span>
-        <button class="btn btn-sm" id="btn-clear-console">Clear</button>
-      </div>
-      <div class="console-body" id="console-output">
-        <div class="console-empty">Run code to see console output</div>
-      </div>
     </div>
   </div>
 </div>
@@ -387,9 +296,7 @@ body{
 <!-- ===== Footer ===== -->
 <div class="runner-footer">
   <div class="stats">
-    <span>HTML: <strong id="stat-html">0</strong> 行</span>
-    <span>CSS: <strong id="stat-css">0</strong> 行</span>
-    <span>JS: <strong id="stat-js">0</strong> 行</span>
+    <span>Total: <strong id="stat-total">0</strong> 行</span>
   </div>
   <span id="status-text">Ready</span>
 </div>
@@ -410,8 +317,6 @@ body{
 <script src="/assets/libs/codemirror/addon/fold/brace-fold.min.js"></script>
 <script src="/assets/libs/codemirror/addon/fold/xml-fold.min.js"></script>
 <script src="/assets/libs/codemirror/addon/fold/comment-fold.min.js"></script>
-<script src="/assets/libs/codemirror/addon/lint/lint.min.js"></script>
-<script src="/assets/libs/jshint/jshint.min.js"></script>
 <script src="/assets/libs/js-beautify/beautify.js"></script>
 <script src="/assets/libs/terser/terser.min.js"></script>
 
@@ -422,437 +327,487 @@ body{
 // ============================================================
 //  Default Code
 // ============================================================
-var DEFAULT_HTML = '<h1>Hello, JS Runner!</h1>\n<p>在左侧编辑 HTML、CSS 和 JS，右侧实时预览。</p>\n<button id="demo-btn">Click Me</button>\n<div id="counter">0</div>\n';
-
-var DEFAULT_CSS = 'body {\n  font-family: system-ui, -apple-system, sans-serif;\n  max-width: 600px;\n  margin: 40px auto;\n  padding: 0 20px;\n  background: #f5f5f5;\n  color: #333;\n}\n\nh1 { font-size: 28px; color: #1a1a2e; margin-bottom: 8px; }\np { color: #666; margin-bottom: 16px; }\n\n#demo-btn {\n  padding: 10px 24px;\n  background: #4f46e5;\n  color: #fff;\n  border: none;\n  border-radius: 6px;\n  font-size: 14px;\n  font-weight: 600;\n  cursor: pointer;\n  transition: background 0.2s;\n}\n#demo-btn:hover { background: #4338ca; }\n\n#counter {\n  margin-top: 16px;\n  font-size: 36px;\n  font-weight: 700;\n  color: #1a1a2e;\n}\n';
-
-var DEFAULT_JS = 'let count = 0;\nconst btn = document.getElementById("demo-btn");\nconst counter = document.getElementById("counter");\n\nbtn.addEventListener("click", () => {\n  count++;\n  counter.textContent = count;\n  console.log("Clicked! Count: " + count);\n});\n\nconsole.log("JS Runner ready 🚀");\n';
+var DEFAULT_CODE = [
+'<!DOCTYPE html>',
+'<html lang="zh-CN">',
+'<head>',
+'  <meta charset="UTF-8">',
+'  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+'  <title>JS Runner Demo</title>',
+'  <style>',
+'    body {',
+'      font-family: system-ui, -apple-system, sans-serif;',
+'      max-width: 600px;',
+'      margin: 40px auto;',
+'      padding: 0 20px;',
+'      background: #f5f5f5;',
+'      color: #333;',
+'    }',
+'    h1 { font-size: 28px; color: #1a1a2e; margin-bottom: 8px; }',
+'    p { color: #666; margin-bottom: 16px; }',
+'    #demo-btn {',
+'      padding: 10px 24px;',
+'      background: #4f46e5;',
+'      color: #fff;',
+'      border: none;',
+'      border-radius: 6px;',
+'      font-size: 14px;',
+'      font-weight: 600;',
+'      cursor: pointer;',
+'      transition: background 0.2s;',
+'    }',
+'    #demo-btn:hover { background: #4338ca; }',
+'    #counter {',
+'      margin-top: 16px;',
+'      font-size: 36px;',
+'      font-weight: 700;',
+'      color: #1a1a2e;',
+'    }',
+'  </style>',
+'</head>',
+'<body>',
+'  <h1>Hello, JS Runner!</h1>',
+'  <p>在左侧编辑 HTML / CSS / JS 代码，右侧实时预览。</p>',
+'  <button id="demo-btn">Click Me</button>',
+'  <div id="counter">0</div>',
+'',
+'  <script>',
+'    let count = 0;',
+'    const btn = document.getElementById("demo-btn");',
+'    const counter = document.getElementById("counter");',
+'',
+'    btn.addEventListener("click", () => {',
+'      count++;',
+'      counter.textContent = count;',
+'      console.log("Clicked! Count: " + count);',
+'    });',
+'',
+'    console.log("JS Runner ready 🚀");',
+'  <\x2Fscript>',
+'</body>',
+'</html>',
+''].join('\n');
 
 // ============================================================
 //  State
 // ============================================================
-var editors = {};
-var activePane = 'html';
+var editor;
 var autoRun = true;
 var runTimer = null;
-var consoleEntries = [];
-var lintCounts = { html: 0, css: 0, js: 0 };
-var STORAGE_KEY = 'jsrunner_v3';
+var STORAGE_KEY = 'jsrunner_v4';
 
 // ============================================================
 //  Shortcuts
 // ============================================================
 var $ = function(s){return document.querySelector(s);};
-var $$ = function(s){return document.querySelectorAll(s);};
 
 // ============================================================
-//  Lint Functions (defined BEFORE editor init for registerHelper)
+//  Initialize Editor
 // ============================================================
-
-// --- JS: JSHint ---
-function jsLint(text) {
-  var found = [];
-  lintCounts.js = 0;
-  if (typeof JSHINT === 'undefined') return found;
-
-  JSHINT(text, { esversion: 11, asi: true, undef: true, unused: 'vars', browser: true, devel: true });
-  var errors = JSHINT.errors || [];
-  for (var i = 0; i < errors.length; i++) {
-    var e = errors[i];
-    if (!e) continue;
-    lintCounts.js++;
-    var severity = (e.code && e.code[0] === 'W') ? 'warning' : 'error';
-    found.push({
-      from: CodeMirror.Pos(e.line - 1, Math.max(0, e.character - 1)),
-      to: CodeMirror.Pos(e.line - 1, Math.max(0, e.character)),
-      message: e.reason,
-      severity: severity
-    });
-  }
-  updateBadge('js');
-  return found;
-}
-
-// --- CSS: CSSStyleSheet API + brace balance ---
-function cssLint(text) {
-  var found = [];
-  lintCounts.css = 0;
-  if (!text.trim()) { updateBadge('css'); return found; }
-
-  if (typeof CSSStyleSheet !== 'undefined') {
-    try {
-      var sheet = new CSSStyleSheet();
-      sheet.replaceSync(text);
-    } catch(e) {
-      lintCounts.css++;
-      var line = 0, col = 0;
-      var m = (e.message || '').match(/at\s+(\d+):(\d+)/);
-      if (m) { line = parseInt(m[1]) - 1; col = parseInt(m[2]) - 1; }
-      found.push({
-        from: CodeMirror.Pos(line, Math.max(0, col)),
-        to: CodeMirror.Pos(line, Math.max(0, col + 1)),
-        message: e.message || 'CSS parse error',
-        severity: 'error'
-      });
-      updateBadge('css');
-      return found;
-    }
-  }
-
-  var brace = 0, lines = text.split('\n');
-  for (var i = 0; i < lines.length; i++) {
-    for (var j = 0; j < lines[i].length; j++) {
-      if (lines[i][j] === '{') brace++;
-      if (lines[i][j] === '}') brace--;
-      if (brace < 0) {
-        lintCounts.css++;
-        found.push({
-          from: CodeMirror.Pos(i, j), to: CodeMirror.Pos(i, j + 1),
-          message: '多余的 "}"', severity: 'error'
-        });
-        brace = 0;
-      }
-    }
-  }
-  if (brace > 0) {
-    lintCounts.css++;
-    found.push({
-      from: CodeMirror.Pos(lines.length - 1, 0),
-      to: CodeMirror.Pos(lines.length - 1, 1),
-      message: '缺少 ' + brace + ' 个 "}"', severity: 'error'
-    });
-  }
-  updateBadge('css');
-  return found;
-}
-
-// --- HTML: tag balance ---
-function htmlLint(text) {
-  var found = [];
-  lintCounts.html = 0;
-  if (!text.trim()) { updateBadge('html'); return found; }
-
-  var voidTags = { area:1,base:1,br:1,col:1,embed:1,hr:1,img:1,input:1,link:1,meta:1,param:1,source:1,track:1,wbr:1 };
-  var stack = [];
-  var re = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g;
-  var m;
-  while ((m = re.exec(text)) !== null) {
-    var tag = m[1].toLowerCase();
-    if (voidTags[tag]) continue;
-    if (m[0][1] === '/') {
-      if (stack.length === 0) {
-        var p = posAt(text, m.index);
-        lintCounts.html++;
-        found.push({
-          from: CodeMirror.Pos(p.line, p.ch), to: CodeMirror.Pos(p.line, p.ch + m[0].length),
-          message: '多余的 </' + tag + '>', severity: 'error'
-        });
-      } else if (stack[stack.length - 1] !== tag) {
-        var p2 = posAt(text, m.index);
-        lintCounts.html++;
-        found.push({
-          from: CodeMirror.Pos(p2.line, p2.ch), to: CodeMirror.Pos(p2.line, p2.ch + m[0].length),
-          message: '标签不匹配 </' + tag + '>，期望 </' + stack[stack.length - 1] + '>', severity: 'error'
-        });
-      } else {
-        stack.pop();
-      }
-    } else if (!/\/\s*>$/.test(m[0])) {
-      stack.push(tag);
-    }
-  }
-  for (var i = 0; i < stack.length; i++) {
-    lintCounts.html++;
-    found.push({
-      from: CodeMirror.Pos(text.split('\n').length - 1, 0),
-      to: CodeMirror.Pos(text.split('\n').length - 1, 1),
-      message: '未闭合的标签 <' + stack[i] + '>', severity: 'warning'
-    });
-  }
-  updateBadge('html');
-  return found;
-}
-
-function posAt(text, idx) {
-  var before = text.substring(0, idx);
-  var lines = before.split('\n');
-  return { line: lines.length - 1, ch: lines[lines.length - 1].length };
-}
-
-// ============================================================
-//  Register CM5 Lint Helpers
-// ============================================================
-CodeMirror.registerHelper('lint', 'javascript', jsLint);
-CodeMirror.registerHelper('lint', 'css', cssLint);
-CodeMirror.registerHelper('lint', 'htmlmixed', htmlLint);
-
-// ============================================================
-//  Initialize Editors
-// ============================================================
-function cmOpts(extra) {
+function cmOpts() {
   var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  var opts = {
+  return {
+    mode: 'htmlmixed',
     theme: isDark ? 'dracula' : 'default',
     lineNumbers: true,
     matchBrackets: true,
     autoCloseBrackets: true,
     styleActiveLine: true,
     foldGutter: true,
-    gutters: ['CodeMirror-lint-markers','CodeMirror-linenumbers','CodeMirror-foldgutter'],
-    lint: true,
+    gutters: ['CodeMirror-linenumbers','CodeMirror-foldgutter'],
     indentUnit: 2,
     tabSize: 2,
     indentWithTabs: false,
     extraKeys: {
       'Ctrl-Enter': runCode, 'Cmd-Enter': runCode,
-      'Ctrl-S': runCode,     'Cmd-S': runCode
+      'Ctrl-S': runCode,     'Cmd-S': runCode,
+      'Shift-Alt-F': formatCode
     }
   };
-  if (extra) { Object.keys(extra).forEach(function(k){opts[k]=extra[k];}); }
-  return opts;
 }
 
-editors.html = CodeMirror(document.getElementById('pane-html'), cmOpts({
-  mode: 'htmlmixed', value: DEFAULT_HTML
-}));
+editor = CodeMirror(document.getElementById('editor-body'), cmOpts());
+editor.setValue(DEFAULT_CODE);
 
-editors.css = CodeMirror(document.getElementById('pane-css'), cmOpts({
-  mode: 'css', value: DEFAULT_CSS
-}));
-
-editors.js = CodeMirror(document.getElementById('pane-js'), cmOpts({
-  mode: 'javascript', value: DEFAULT_JS
-}));
-
-// Change handlers
-['html','css','js'].forEach(function(lang){
-  editors[lang].on('change', function(){
-    if (autoRun) { clearTimeout(runTimer); runTimer = setTimeout(runCode, 500); }
-    updateStats();
-    saveStorage();
-  });
+editor.on('change', function(){
+  if (autoRun) { clearTimeout(runTimer); runTimer = setTimeout(runCode, 500); }
+  updateStats();
+  saveStorage();
 });
 
 // ============================================================
-//  Badge & Stats
+//  Stats
 // ============================================================
-function updateBadge(lang) {
-  var badge = document.querySelector('.badge[data-for="' + lang + '"]');
-  if (!badge) return;
-  var count = lintCounts[lang];
-  badge.textContent = count;
-  if (count > 0) {
-    badge.classList.remove('hidden');
-    badge.classList.remove('warn');
-    badge.classList.add('error');
-  } else {
-    badge.classList.add('hidden');
-  }
-}
-
 function updateStats() {
-  var elHtml = $('#stat-html'); if (elHtml) elHtml.textContent = editors.html.lineCount();
-  var elCss = $('#stat-css'); if (elCss) elCss.textContent = editors.css.lineCount();
-  var elJs = $('#stat-js'); if (elJs) elJs.textContent = editors.js.lineCount();
+  var el = $('#stat-total');
+  if (el) el.textContent = editor.lineCount();
 }
 
 // ============================================================
-//  Build & Run
+//  Run
 // ============================================================
 function runCode() {
   clearTimeout(runTimer);
-  consoleEntries = [];
-  renderConsole();
-
-  var html = editors.html.getValue();
-  var css = editors.css.getValue();
-  var js = editors.js.getValue();
-  var safeJs = js.replace(/<\/script/gi, '<\\/script');
-
-  // Console-capture IIFE — injects into iframe to forward console calls to parent
-  var capture = [
-    '(function(){',
-    'var m=["log","error","warn","info","debug"],o={};',
-    'm.forEach(function(k){o[k]=console[k];',
-    'console[k]=function(){',
-    'try{o[k].apply(console,arguments)}catch(e){}',
-    'try{parent.postMessage({',
-    '__jsr:1,type:"c",method:k,',
-    'args:Array.prototype.slice.call(arguments).map(function(a){',
-    'try{',
-    'if(a===null)return"null";',
-    'if(a===undefined)return"undefined";',
-    'if(typeof a==="object")return JSON.stringify(a,null,2);',
-    'return String(a)',
-    '}catch(e){return String(a)}',
-    '})},',
-    '"*")}catch(e){}',
-    '});',
-    'window.onerror=function(msg,url,line,col,err){',
-    'try{parent.postMessage({',
-    '__jsr:1,type:"c",method:"error",',
-    'args:[msg+(line?" (line "+line+")":"")]},',
-    '"*")}catch(e){}',
-    'return false',
-    '};',
-    'window.addEventListener("unhandledrejection",function(e){',
-    'try{parent.postMessage({',
-    '__jsr:1,type:"c",method:"error",',
-    'args:["Promise: "+(e.reason&&e.reason.message||String(e.reason))]},',
-    '"*")}catch(e){}',
-    '});',
-    '})();'
-  ].join('\n');
-
-  // Use \x3C hex escapes so HTML parser never sees literal angle brackets in raw source
-  var S  = '\x3Cscript\x3E';
-  var SE = '\x3C/script\x3E';
-  var srcdoc = [
-    '\x3C!DOCTYPE html\x3E',
-    '\x3Chtml\x3E',
-    '\x3Chead\x3E',
-    '\x3Cmeta charset="UTF-8"\x3E',
-    '\x3Cstyle\x3E',
-    css,
-    '\x3C/style\x3E',
-    S,
-    capture,
-    SE,
-    '\x3C/head\x3E',
-    '\x3Cbody\x3E',
-    html,
-    S,
-    'try{',
-    safeJs,
-    '}catch(e){console.error(e.message)}',
-    SE,
-    '\x3C/body\x3E',
-    '\x3C/html\x3E'
-  ].join('\n');
-
   var iframe = document.getElementById('preview-iframe');
-  if (iframe) iframe.srcdoc = srcdoc;
+  if (iframe) iframe.srcdoc = editor.getValue();
 
   var st = $('#status-text'); if (st) st.textContent = 'Output updated';
-  setTimeout(function(){ var st2 = $('#status-text'); if (st2) st2.textContent = 'Ready'; }, 2000);
+  setTimeout(function(){
+    var st2 = $('#status-text'); if (st2) st2.textContent = 'Ready';
+  }, 2000);
 }
 
 // ============================================================
-//  Console capture
+//  Format (beautify entire HTML document)
 // ============================================================
-window.addEventListener('message', function(e){
-  if (!e.data || !e.data.__jsr) return;
-  if (e.data.type !== 'c') return;
 
-  var method = e.data.method || 'log';
-  var args = e.data.args || [];
-  consoleEntries.push({ method: method, text: args.join(' ') });
-  if (consoleEntries.length > 300) { consoleEntries = consoleEntries.slice(-300); }
-  renderConsole();
-  updateConsoleBadge();
-});
+/**
+ * Format CSS content within <style> blocks.
+ */
+function _formatCss(css) {
+  // Remove leading/trailing whitespace while preserving internal structure
+  css = css.trim();
+  if (!css) return css;
 
-function renderConsole() {
-  var el = $('#console-output');
-  if (!el) return;
-  if (consoleEntries.length === 0) {
-    el.innerHTML = '<div class="console-empty">Run code to see console output</div>';
-    return;
+  var result = '';
+  var indent = 0;
+  var indentStr = '  ';
+  // Tokenize: comments, blocks, rules
+  var i = 0;
+  while (i < css.length) {
+    // Comment
+    if (css[i] === '/' && css[i+1] === '*') {
+      var end = css.indexOf('*/', i + 2);
+      if (end === -1) { result += css.substring(i); break; }
+      result += '\n' + indentStr.repeat(indent) + css.substring(i, end + 2);
+      i = end + 2;
+      continue;
+    }
+    // Opening brace
+    if (css[i] === '{') {
+      result += ' {\n';
+      indent++;
+      i++;
+      // Skip whitespace after {
+      while (i < css.length && /\s/.test(css[i])) i++;
+      continue;
+    }
+    // Closing brace
+    if (css[i] === '}') {
+      indent = Math.max(0, indent - 1);
+      result += '\n' + indentStr.repeat(indent) + '}';
+      i++;
+      // Skip whitespace after }
+      while (i < css.length && /\s/.test(css[i])) i++;
+      continue;
+    }
+    // Semicolon (property separator)
+    if (css[i] === ';') {
+      result += ';\n' + indentStr.repeat(indent);
+      i++;
+      while (i < css.length && /\s/.test(css[i])) i++;
+      continue;
+    }
+    // Comma (selector separator)
+    if (css[i] === ',') {
+      result += ',\n' + indentStr.repeat(indent);
+      i++;
+      while (i < css.length && /\s/.test(css[i])) i++;
+      continue;
+    }
+    // Colon (property-value separator)
+    if (css[i] === ':') {
+      result += ': ';
+      i++;
+      while (i < css.length && /\s/.test(css[i])) i++;
+      continue;
+    }
+    // Whitespace - collapse to single space except at line start
+    if (/\s/.test(css[i])) {
+      // Check if we just had a newline from a ; or }
+      if (result && result[result.length - 1] === '\n') {
+        // Already at line start, just skip whitespace
+        i++;
+        continue;
+      }
+      var ws = '';
+      while (i < css.length && /\s/.test(css[i])) { ws += css[i]; i++; }
+      if (ws.indexOf('\n') !== -1) {
+        result += '\n' + indentStr.repeat(indent);
+      } else if (result && result[result.length - 1] !== ' ') {
+        result += ' ';
+      }
+      continue;
+    }
+    // Regular character
+    result += css[i];
+    i++;
   }
-  var h = '';
-  for (var i = 0; i < consoleEntries.length; i++) {
-    var e = consoleEntries[i];
-    var cls = e.method === 'error' ? ' err' : (e.method === 'warn' ? ' wrn' : '');
-    h += '<div class="console-entry' + cls + '"><span class="console-method ' + e.method + '">' +
-      e.method + '</span><span class="console-body-text">' + escHtml(e.text) + '</span></div>';
+
+  return result.replace(/\n\s*\n\s*\n/g, '\n\n').replace(/^\n+/, '').trim();
+}
+
+/**
+ * Format HTML document: properly indent tags, beautify inline <style> and <script> blocks.
+ */
+function formatHtml(html) {
+  // === Step 1: Extract and format style blocks ===
+  var styleBlocks = [];
+  html = html.replace(new RegExp('(<style\\b[^>]*>)([\\s\\S]*?)(<\\/style>)', 'gi'), function(m, open, content, close) {
+    var formatted = _formatCss(content);
+    var idx = styleBlocks.length;
+    styleBlocks.push(open + '\n' + formatted + '\n' + close);
+    return '\x00STYLE' + idx + '\x00';
+  });
+
+  // === Step 2: Extract and format script blocks ===
+  var scriptBlocks = [];
+  html = html.replace(new RegExp('(<script\\b[^>]*>)([\\s\\S]*?)(<\\/script>)', 'gi'), function(m, open, content, close) {
+    // Skip scripts with src attribute
+    if (/src\s*=/.test(open)) return m;
+    // Skip non-JS script types
+    var typeMatch = open.match(/type\s*=\s*["']([^"']*)["']/i);
+    if (typeMatch && !/^(text\/javascript|module|application\/javascript)$/i.test(typeMatch[1])) return m;
+
+    var formatted = content;
+    if (typeof window.js_beautify === 'function') {
+      try {
+        formatted = window.js_beautify(content, {
+          indent_size: 2, indent_char: ' ', max_preserve_newlines: 2,
+          preserve_newlines: true, brace_style: 'collapse',
+          space_before_conditional: true, unescape_strings: false
+        });
+      } catch(e) { /* keep original */ }
+    }
+    var idx = scriptBlocks.length;
+    scriptBlocks.push(open + '\n' + formatted.trim() + '\n' + close);
+    return '\x00SCRIPT' + idx + '\x00';
+  });
+
+  // === Step 3: Format HTML structure ===
+  var voidTags = { area:1,base:1,br:1,col:1,embed:1,hr:1,img:1,input:1,link:1,meta:1,param:1,source:1,track:1,wbr:1 };
+  var result = '';
+  var indent = 0;
+  var indentStr = '  ';
+  // Tokenize: split on tag boundaries, preserve placeholders
+  var tokenRe = /(<[^>]+>|\x00(?:STYLE|SCRIPT)\d+\x00)/g;
+  var tokens = [];
+  var lastIdx = 0;
+  var m;
+  while ((m = tokenRe.exec(html)) !== null) {
+    if (m.index > lastIdx) {
+      var text = html.substring(lastIdx, m.index);
+      var trimmed = text.trim();
+      if (trimmed) tokens.push({ type: 'text', value: trimmed });
+    }
+    var raw = m[0];
+    if (raw.charCodeAt(0) === 0) {
+      tokens.push({ type: 'block', value: raw });
+    } else {
+      tokens.push({ type: 'tag', value: raw });
+    }
+    lastIdx = m.index + m[0].length;
   }
-  el.innerHTML = h;
-  el.scrollTop = el.scrollHeight;
-}
-
-function updateConsoleBadge() {
-  var errs = 0;
-  for (var i = 0; i < consoleEntries.length; i++) {
-    if (consoleEntries[i].method === 'error') errs++;
+  if (lastIdx < html.length) {
+    var tail = html.substring(lastIdx).trim();
+    if (tail) tokens.push({ type: 'text', value: tail });
   }
+
+  // Process tokens
+  var prevType = null;
+  for (var i = 0; i < tokens.length; i++) {
+    var t = tokens[i];
+    if (t.type === 'block') {
+      // Restore placeholder block content, indented
+      var blockMatch = t.value.match(/^\x00(STYLE|SCRIPT)(\d+)\x00$/);
+      if (blockMatch) {
+        var kind = blockMatch[1];
+        var idx = parseInt(blockMatch[2]);
+        var blockContent = kind === 'STYLE' ? styleBlocks[idx] : scriptBlocks[idx];
+        // Indent the block content to match current level
+        var lines = blockContent.split('\n');
+        result += '\n' + indentStr.repeat(indent) + lines[0];
+        for (var li = 1; li < lines.length; li++) {
+          result += '\n' + (lines[li] ? indentStr.repeat(indent + 1) + lines[li] : '');
+        }
+      }
+      prevType = 'block';
+      continue;
+    }
+
+    if (t.type === 'text') {
+      if (prevType === 'tag') {
+        result += '\n' + indentStr.repeat(indent) + t.value;
+      } else {
+        result += t.value;
+      }
+      prevType = 'text';
+      continue;
+    }
+
+    // t.type === 'tag'
+    var tag = t.value;
+
+    // DOCTYPE
+    if (/^<!/i.test(tag)) {
+      result += (result ? '\n' : '') + tag;
+      prevType = 'tag';
+      continue;
+    }
+
+    // Closing tag
+    if (tag[1] === '/') {
+      indent = Math.max(0, indent - 1);
+      result += '\n' + indentStr.repeat(indent) + tag;
+      prevType = 'tag';
+      continue;
+    }
+
+    // Self-closing tag
+    if (/\/\s*>$/.test(tag)) {
+      result += '\n' + indentStr.repeat(indent) + tag;
+      prevType = 'tag';
+      continue;
+    }
+
+    // Get tag name
+    var tagMatch = tag.match(/^<(\w+)/);
+    if (!tagMatch) {
+      result += '\n' + indentStr.repeat(indent) + tag;
+      prevType = 'tag';
+      continue;
+    }
+    var tagName = tagMatch[1].toLowerCase();
+
+    // Void element
+    if (voidTags[tagName]) {
+      result += '\n' + indentStr.repeat(indent) + tag;
+      prevType = 'tag';
+      continue;
+    }
+
+    // Opening tag
+    result += '\n' + indentStr.repeat(indent) + tag;
+    prevType = 'tag';
+
+    // Check if this opening tag actually gets closed later in the source
+    // Only increase indent if there's content between open and close
+    indent++;
+  }
+
+  return result.replace(/^\n+/, '').trim() + '\n';
 }
 
-function clearConsole() {
-  consoleEntries = [];
-  renderConsole();
-}
-
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ============================================================
-//  Format / Minify
-// ============================================================
-function formatJs() {
-  var code = editors.js.getValue();
+function formatCode() {
+  var code = editor.getValue();
   if (!code.trim()) return;
   try {
-    var formatted = window.js_beautify(code, {
-      indent_size: 2, indent_char: ' ', max_preserve_newlines: 2,
-      preserve_newlines: true, brace_style: 'collapse',
-      space_before_conditional: true, unescape_strings: false
-    });
-    editors.js.setValue(formatted);
-    var st = $('#status-text'); if (st) st.textContent = 'JS 格式化完成';
+    var formatted = formatHtml(code);
+    editor.setValue(formatted);
+    var st = $('#status-text'); if (st) st.textContent = '格式化完成';
   } catch(e) {
     var st2 = $('#status-text'); if (st2) st2.textContent = '格式化失败: ' + e.message;
   }
 }
 
-function minifyJs() {
-  var code = editors.js.getValue();
+// ============================================================
+//  Minify (compress entire HTML document)
+// ============================================================
+
+/**
+ * Minify CSS content: remove comments, collapse whitespace.
+ */
+function _minifyCss(css) {
+  // Remove comments
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Collapse all whitespace sequences
+  css = css.replace(/\s+/g, ' ');
+  // Remove spaces around structural characters
+  css = css.replace(/\s*([{}:;,>+~()])\s*/g, '$1');
+  // Remove unnecessary semicolons before closing brace
+  css = css.replace(/;\s*}/g, '}');
+  // Remove leading/trailing whitespace from selectors and values
+  css = css.replace(/^\s+|\s+$/g, '');
+  return css;
+}
+
+function minifyHtml(html) {
+  var result = html;
+
+  // === Step 1: Protect <textarea>, <pre>, <code> content ===
+  var preserveBlocks = [];
+  var preserveRe = new RegExp('(<(?:textarea|pre|code)\\b[^>]*>)([\\s\\S]*?)(<\\/(?:textarea|pre|code)>)', 'gi');
+  result = result.replace(preserveRe, function(m) {
+    var idx = preserveBlocks.length;
+    preserveBlocks.push(m);
+    return '\x00PRESERVE' + idx + '\x00';
+  });
+
+  // === Step 2: Remove HTML comments (keep IE conditional comments) ===
+  result = result.replace(new RegExp('<!--(?!\\[if\\s)[\\s\\S]*?-->', 'g'), '');
+
+  // === Step 3: Minify inline script blocks ===
+  var scriptBlockRe = new RegExp('(<script\\b[^>]*>)([\\s\\S]*?)(<\\/script>)', 'gi');
+  result = result.replace(scriptBlockRe, function(m, open, content, close) {
+    // Skip scripts with src attribute
+    if (/src\s*=/.test(open)) return m;
+    // Skip non-JS script types
+    var typeMatch = open.match(/type\s*=\s*["']([^"']*)["']/i);
+    if (typeMatch && !/^(text\/javascript|module|application\/javascript)$/i.test(typeMatch[1])) return m;
+
+    var minified = content;
+    if (typeof Terser !== 'undefined' && Terser.minify_sync) {
+      try {
+        var result = Terser.minify_sync(content);
+        if (result.code) minified = result.code;
+      } catch(e) { /* keep original */ }
+    }
+    return open + minified + close;
+  });
+
+  // === Step 4: Minify inline style blocks ===
+  var styleBlockRe = new RegExp('(<style\\b[^>]*>)([\\s\\S]*?)(<\\/style>)', 'gi');
+  result = result.replace(styleBlockRe, function(m, open, content, close) {
+    return open + _minifyCss(content) + close;
+  });
+
+  // === Step 5: Collapse HTML whitespace ===
+  // Remove whitespace between tags
+  result = result.replace(/>\s+</g, '><');
+  // Collapse multiple spaces into one (in text nodes)
+  result = result.replace(/\s{2,}/g, ' ');
+  // Remove leading/trailing whitespace on each line
+  result = result.replace(/^\s+|\s+$/gm, '');
+
+  // === Step 6: Restore preserved blocks ===
+  result = result.replace(/\x00PRESERVE(\d+)\x00/g, function(m, idx) {
+    var block = preserveBlocks[parseInt(idx)];
+    // Minify preserved blocks too (just collapse whitespace between their tags)
+    return block.replace(/>\s+</g, '><');
+  });
+
+  // Remove blank lines
+  result = result.replace(/\n\s*\n/g, '\n');
+
+  return result.trim();
+}
+
+function minifyCode() {
+  var code = editor.getValue();
   if (!code.trim()) return;
   try {
-    var result = window.Terser.minify_sync(code);
-    if (result.error) {
-      var st = $('#status-text'); if (st) st.textContent = '压缩失败: ' + result.error.message;
-      return;
-    }
-    editors.js.setValue(result.code);
-    var st2 = $('#status-text'); if (st2) st2.textContent = 'JS 压缩完成';
+    var minified = minifyHtml(code);
+    editor.setValue(minified);
+    var st = $('#status-text'); if (st) st.textContent = '压缩完成';
   } catch(e) {
-    var st3 = $('#status-text'); if (st3) st3.textContent = '压缩失败: ' + e.message;
+    var st2 = $('#status-text'); if (st2) st2.textContent = '压缩失败: ' + e.message;
   }
 }
 
 // ============================================================
-//  Tab switching
+//  Resize (horizontal: editor | output)
 // ============================================================
-var editorTabsEl = $('#editor-tabs');
-if (editorTabsEl) {
-  editorTabsEl.addEventListener('click', function(e){
-    var tab = e.target.closest('.runner-tab');
-    if (!tab) return;
-    var pane = tab.getAttribute('data-pane');
-    if (!pane) return;
-    switchEditorTab(pane);
-  });
-}
-
-function switchEditorTab(pane) {
-  activePane = pane;
-  $$('#editor-tabs .runner-tab').forEach(function(t){
-    t.classList.toggle('active', t.getAttribute('data-pane') === pane);
-  });
-  $$('.editor-pane').forEach(function(p){ p.classList.remove('active'); });
-  var el = document.getElementById('pane-' + pane);
-  if (el) { el.classList.add('active'); }
-  if (editors[pane]) {
-    editors[pane].refresh();
-    editors[pane].focus();
-  }
-}
-
-// ============================================================
-//  Resize (horizontal: editor|output  +  vertical: preview|console)
-// ============================================================
-var resizeState = null; // { dir:'h'|'v', rect:DOMRect, el:HTMLElement, raf:number }
+var resizeState = null;
 
 function resizeRAF(e) {
   if (!resizeState) return;
@@ -862,60 +817,40 @@ function resizeRAF(e) {
 
   var rs = resizeState, rect = rs.rect;
 
-  if (rs.dir === 'h') {
-    var pct;
-    if (window.innerWidth <= 768) {
-      pct = Math.max(20, Math.min(80, ((clientY - rect.top) / (rect.height - 5)) * 100));
-      rs.el.style.height = pct + '%'; rs.el.style.width = '100%';
-    } else {
-      pct = Math.max(20, Math.min(80, ((clientX - rect.left) / (rect.width - 5)) * 100));
-      rs.el.style.width = pct + '%'; rs.el.style.height = '100%';
-    }
+  if (window.innerWidth <= 768) {
+    var pct = Math.max(20, Math.min(80, ((clientY - rect.top) / (rect.height - 5)) * 100));
+    rs.el.style.height = pct + '%'; rs.el.style.width = '100%';
   } else {
-    // Vertical: preview height within output panel
-    var y = clientY - rect.top;
-    var pct = Math.max(10, Math.min(90, (y / (rect.height - 5)) * 100));
-    rs.el.style.height = pct + '%';
+    var pctH = Math.max(20, Math.min(80, ((clientX - rect.left) / (rect.width - 5)) * 100));
+    rs.el.style.width = pctH + '%'; rs.el.style.height = '100%';
   }
 }
 
 function onResizeMove(e) {
   if (!resizeState) return;
-  if (resizeState.raf) return; // rAF already scheduled
+  if (resizeState.raf) return;
   resizeState.raf = requestAnimationFrame(function(){
     resizeState.raf = null;
     resizeRAF(e);
-    if (resizeState && resizeState.dir === 'h' && editors[activePane]) {
-      editors[activePane].refresh();
-    }
+    if (editor) editor.refresh();
   });
 }
 
-function startResize(dir, e) {
+function startResize(e) {
+  var handle = $('#resize-handle');
+  var el = $('#panel-editor');
   var overlay = $('#resize-overlay');
-  var handle, el, cursor;
+  var main = $('#runner-main');
+  if (!handle || !el || !overlay || !main) return;
 
-  if (dir === 'h') {
-    handle = $('#resize-handle');
-    el = $('#panel-editor');
-    cursor = window.innerWidth <= 768 ? 'row-resize' : 'col-resize';
-    var main = $('#runner-main');
-    if (!handle || !el || !main) return;
-    handle.classList.add('active');
-    resizeState = { dir: 'h', rect: main.getBoundingClientRect(), el: el, raf: null };
-  } else {
-    handle = $('#output-divider');
-    el = $('#output-preview');
-    cursor = 'row-resize';
-    var panelOut = $('#panel-output');
-    if (!handle || !el || !panelOut) return;
-    handle.classList.add('active');
-    resizeState = { dir: 'v', rect: panelOut.getBoundingClientRect(), el: el, raf: null };
-  }
-
-  if (overlay) { overlay.classList.add('active'); overlay.style.cursor = cursor; }
+  handle.classList.add('active');
+  overlay.classList.add('active');
+  var cursor = window.innerWidth <= 768 ? 'row-resize' : 'col-resize';
+  overlay.style.cursor = cursor;
   document.body.classList.add('resize-active');
   document.body.style.cursor = cursor;
+
+  resizeState = { rect: main.getBoundingClientRect(), el: el, raf: null };
   e.preventDefault();
 }
 
@@ -923,7 +858,7 @@ function stopResize() {
   if (!resizeState) return;
   if (resizeState.raf) { cancelAnimationFrame(resizeState.raf); }
 
-  var handle = resizeState.dir === 'h' ? $('#resize-handle') : $('#output-divider');
+  var handle = $('#resize-handle');
   if (handle) handle.classList.remove('active');
 
   var overlay = $('#resize-overlay');
@@ -936,17 +871,13 @@ function stopResize() {
 
 // Mouse events
 var hHandle = $('#resize-handle');
-if (hHandle) { hHandle.addEventListener('mousedown', function(e){ startResize('h', e); }); }
-
-var vHandle = $('#output-divider');
-if (vHandle) { vHandle.addEventListener('mousedown', function(e){ startResize('v', e); }); }
+if (hHandle) { hHandle.addEventListener('mousedown', function(e){ startResize(e); }); }
 
 document.addEventListener('mousemove', onResizeMove);
 document.addEventListener('mouseup', stopResize);
 
 // Touch events
-if (hHandle) { hHandle.addEventListener('touchstart', function(e){ startResize('h', e); }); }
-if (vHandle) { vHandle.addEventListener('touchstart', function(e){ startResize('v', e); }); }
+if (hHandle) { hHandle.addEventListener('touchstart', function(e){ startResize(e); }); }
 
 document.addEventListener('touchmove', onResizeMove);
 document.addEventListener('touchend', stopResize);
@@ -961,9 +892,7 @@ function toggleTheme() {
   html.setAttribute('data-theme', next);
 
   var cmTheme = next === 'dark' ? 'dracula' : 'default';
-  Object.keys(editors).forEach(function(k){
-    if (editors[k]) editors[k].setOption('theme', cmTheme);
-  });
+  if (editor) editor.setOption('theme', cmTheme);
 
   var btn = $('#btn-theme'); if (btn) btn.textContent = next === 'dark' ? '☀' : '☾';
   try { localStorage.setItem('jsrunner_theme', next); } catch(e) {}
@@ -1006,9 +935,8 @@ if (btnAuto) {
 //  Button bindings
 // ============================================================
 var btnRun = $('#btn-run'); if (btnRun) btnRun.addEventListener('click', runCode);
-var btnClear = $('#btn-clear-console'); if (btnClear) btnClear.addEventListener('click', clearConsole);
-var btnFmt = $('#btn-format-js'); if (btnFmt) btnFmt.addEventListener('click', formatJs);
-var btnMin = $('#btn-minify-js'); if (btnMin) btnMin.addEventListener('click', minifyJs);
+var btnFmt = $('#btn-format'); if (btnFmt) btnFmt.addEventListener('click', formatCode);
+var btnMin = $('#btn-minify'); if (btnMin) btnMin.addEventListener('click', minifyCode);
 
 // Donate
 var donateWx = $('#donate-wx'); if (donateWx) donateWx.addEventListener('click', function(){ $('#donate-dialog').classList.add('active'); });
@@ -1020,12 +948,13 @@ var donateOverlay = $('#donate-dialog'); if (donateOverlay) donateOverlay.addEve
 //  Keyboard shortcuts
 // ============================================================
 document.addEventListener('keydown', function(e){
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  // Don't intercept when focus is in another input
+  var tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
   var ctrl = e.ctrlKey || e.metaKey;
-  if (ctrl && e.key === '1') { e.preventDefault(); switchEditorTab('html'); }
-  if (ctrl && e.key === '2') { e.preventDefault(); switchEditorTab('css'); }
-  if (ctrl && e.key === '3') { e.preventDefault(); switchEditorTab('js'); }
   if (ctrl && (e.key === 'Enter' || e.key === 's')) { e.preventDefault(); runCode(); }
+  if (ctrl && e.shiftKey && e.key === 'F') { e.preventDefault(); formatCode(); }
 });
 
 // ============================================================
@@ -1033,19 +962,15 @@ document.addEventListener('keydown', function(e){
 // ============================================================
 function saveStorage() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      html: editors.html.getValue(), css: editors.css.getValue(), js: editors.js.getValue()
-    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ code: editor.getValue() }));
   } catch(e) {}
 }
 
 function restoreStorage() {
   try {
     var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved) {
-      if (saved.html) editors.html.setValue(saved.html);
-      if (saved.css) editors.css.setValue(saved.css);
-      if (saved.js) editors.js.setValue(saved.js);
+    if (saved && saved.code) {
+      editor.setValue(saved.code);
       return true;
     }
   } catch(e) {}
@@ -1060,9 +985,9 @@ function init() {
   updateStats();
   runCode();
   setTimeout(function(){
-    if (editors[activePane]) {
-      editors[activePane].refresh();
-      editors[activePane].focus();
+    if (editor) {
+      editor.refresh();
+      editor.focus();
     }
   }, 100);
 }
@@ -1071,14 +996,12 @@ function init() {
 if (typeof CodeMirror !== 'undefined') {
   init();
 } else {
-  // Fallback: wait for CodeMirror to load
   var checkCm = setInterval(function(){
     if (typeof CodeMirror !== 'undefined') {
       clearInterval(checkCm);
       init();
     }
   }, 50);
-  // Timeout after 5 seconds
   setTimeout(function(){ clearInterval(checkCm); }, 5000);
 }
 
