@@ -837,12 +837,15 @@
                     }
 
                     function flushOwnLineComments() {
-                        for (var c = 0; c < pendingOwnLine.length; c++) {
-                            emitIndent();
-                            out += pendingOwnLine[c].value;
-                            out += NL;
+                        if (pendingOwnLine.length > 0) {
+                            for (var c = 0; c < pendingOwnLine.length; c++) {
+                                emitIndent();
+                                out += pendingOwnLine[c].value;
+                                out += NL;
+                            }
+                            pendingOwnLine = [];
+                            atNewline = true;
                         }
-                        pendingOwnLine = [];
                     }
 
                     function emitInlineComments(token) {
@@ -864,7 +867,7 @@
                         switch (t.type) {
                             case 'LBRACE':
                                 flushOwnLineComments();
-                                if (ti > 0) { out += NL; }
+                                if (ti > 0 && !atNewline) { out += NL; }
                                 emitIndent();
                                 out += '{';
                                 emitInlineComments(t);
@@ -875,7 +878,7 @@
 
                             case 'LBRACKET':
                                 flushOwnLineComments();
-                                if (ti > 0) { out += NL; }
+                                if (ti > 0 && !atNewline) { out += NL; }
                                 emitIndent();
                                 out += '[';
                                 emitInlineComments(t);
@@ -888,7 +891,7 @@
                             case 'RBRACKET':
                                 flushOwnLineComments();
                                 indent--;
-                                out += NL;
+                                if (!atNewline) { out += NL; }
                                 emitIndent();
                                 out += t.value;
                                 emitInlineComments(t);
