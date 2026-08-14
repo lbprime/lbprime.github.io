@@ -36,12 +36,10 @@ jobs: # 定义工作流中的作业列表
         shell: bash
         run: |
           python3 <<'PYEOF'
-          import html, pathlib, re
+          import html, json, pathlib, re
           from datetime import datetime, timezone
-          from xml.sax.saxutils import escape as xml_escape
 
           BASE_URL = "https://lbprime.github.io"
-          NS_PAGE = "https://lbprime.github.io/sitemap-ext"
 
           def extract_meta(content, name):
               """提取 <meta name="X" content="..."> 的 content 值，兼容属性顺序"""
@@ -61,42 +59,40 @@ jobs: # 定义工作流中的作业列表
               return fallback
 
           now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-          entries = []
-          lines = ['<?xml version="1.0" encoding="UTF-8"?>']
-          lines.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"')
-          lines.append(f'         xmlns:page="{NS_PAGE}">')
 
-          # 收集所有需要收录的文件: 根目录的 index.html + pages/*.html
-          files = []
-          index_path = pathlib.Path("index.html")
-          if index_path.exists():
-              files.append((index_path, BASE_URL, "1.0"))  # 首页最高优先级
+          # 生成 sitemap.xml（标准协议，仅 loc + lastmod，同时服务 Google 和 Bing）
+          sitemap_locs = []
+          if pathlib.Path("index.html").exists():
+              sitemap_locs.append(BASE_URL)  # 首页
+          sitemap_locs.extend(f"{BASE_URL}/pages/{f.name}" for f in sorted(pathlib.Path("pages").glob("*.html")))
+
+          sitemap_lines = ['<?xml version="1.0" encoding="UTF-8"?>']
+          sitemap_lines.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+          for loc in sitemap_locs:
+              sitemap_lines.append("  <url>")
+              sitemap_lines.append(f"    <loc>{loc}</loc>")
+              sitemap_lines.append(f"    <lastmod>{now}</lastmod>")
+              sitemap_lines.append("  </url>")
+          sitemap_lines.append("</urlset>")
+          sitemap_path = pathlib.Path("sitemap.xml")
+          sitemap_path.write_text("\n".join(sitemap_lines) + "\n", encoding="utf-8")
+
+          # 生成 tools.json（首页导航数据源，仅收录 pages/*.html）
+          tools = []
           for f in sorted(pathlib.Path("pages").glob("*.html")):
-              files.append((f, f"{BASE_URL}/pages/{f.name}", "0.8"))
-
-          for f, loc, priority in files:
               content = f.read_text(encoding="utf-8")
-              title = extract_title(content, f.stem)
-              description = extract_meta(content, "description")
-              keywords = extract_meta(content, "keywords")
-              print(f"  {f}: title=[{title}] desc=[{description}] kw=[{keywords}]")
+              tools.append({
+                  "name": extract_title(content, f.stem),
+                  "url": f"/pages/{f.name}",
+                  "description": extract_meta(content, "description"),
+              })
+          tools_path = pathlib.Path("tools.json")
+          tools_path.write_text(json.dumps(tools, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-              lines.append("  <url>")
-              lines.append(f"    <loc>{loc}</loc>")
-              lines.append(f"    <lastmod>{now}</lastmod>")
-              lines.append("    <changefreq>daily</changefreq>")
-              lines.append(f"    <priority>{priority}</priority>")
-              lines.append(f"    <page:name>{xml_escape(title)}</page:name>")
-              lines.append(f"    <page:description>{xml_escape(description)}</page:description>")
-              lines.append(f"    <page:keywords>{xml_escape(keywords)}</page:keywords>")
-              lines.append("  </url>")
-              entries.append(f.name)
-
-          lines.append("</urlset>")
-          output_path = pathlib.Path("sitemap.xml")
-          output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-          print(f"\nGenerated {output_path} with {len(entries)} entries: {entries}")
-          print(output_path.read_text(encoding="utf-8"))
+          print(f"Generated {sitemap_path} with {len(sitemap_locs)} entries")
+          print(f"Generated {tools_path} with {len(tools)} tools")
+          print(sitemap_path.read_text(encoding="utf-8"))
+          print(tools_path.read_text(encoding="utf-8"))
           PYEOF
 
       - name: Setup Pages # 步骤3：配置 GitHub Pages

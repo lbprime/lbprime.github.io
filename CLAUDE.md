@@ -11,13 +11,13 @@
 ## 目录结构
 
 ```
-index.html                # 首页导航（原生 JS，从 sitemap.xml 读工具清单）
+index.html                # 首页导航（原生 JS，从 tools.json 读工具清单）
 pages/*.html              # 工具页，一个工具一个文件
 pages/disabled/           # 已下线工具（移到这里，不参与 sitemap 收录）
 assets/libs/              # 本地第三方库：vue、element-plus、codemirror、monaco-editor、
                           #   crypto-js、js-beautify、jshint、sql-formatter、node-sql-parser、terser、prism
 assets/images/            # 图片：og-image.png、打赏二维码 donate-*.png
-.github/workflows/static.yml  # 部署 + 自动生成 sitemap.xml
+.github/workflows/static.yml  # 部署 + 自动生成 sitemap.xml 和 tools.json
 ```
 
 ## 新增工具页 checklist
@@ -25,7 +25,7 @@ assets/images/            # 图片：og-image.png、打赏二维码 donate-*.png
 1. 在 `pages/` 下新建 `xxx.html`（文件名即 URL，kebab-case）。
 2. 以现有工具页（如 `pages/hash.html`）为模板，保留完整 SEO 头部：
    `<title>`、`<meta name="description">`、`<meta name="keywords">`，以及 og / twitter / canonical / favicon / ld+json。
-   **这些 meta 会被 CI 自动抓取生成 sitemap.xml，必须写全且内容真实**。
+   **这些 meta 会被 CI 自动抓取，生成 sitemap.xml（loc/lastmod）和 tools.json（首页导航数据源），必须写全且内容真实**。
 3. 引入本地库：
    ```html
    <link rel="stylesheet" href="/assets/libs/element-plus/element-plus.index.css">
@@ -44,11 +44,13 @@ assets/images/            # 图片：og-image.png、打赏二维码 donate-*.png
 5. **数据只在浏览器本地处理，不得上传任何服务**（站点核心卖点，也是隐私承诺）。
 6. 如需打赏入口，沿用现有 donate sidebar 样式，引用 `assets/images/donate-*.png`。
 
-## sitemap.xml 由 CI 自动生成，勿手改
+## sitemap.xml 与 tools.json 由 CI 自动生成，勿手改
 
-- `sitemap.xml` 已在 `.gitignore` 中，由 `.github/workflows/static.yml` 部署时扫描 `pages/*.html` 自动生成（提取 title / description / keywords）。
-- 新增页面**无需也不应**手动更新 sitemap；页面 meta 写全后 push 到 main 即自动收录。
-- 首页导航从 `/sitemap.xml` 读工具卡片，本地无该文件时首页显示「加载失败」属正常现象。
+- `sitemap.xml` 和 `tools.json` 均已在 `.gitignore` 中，由 `.github/workflows/static.yml` 部署时扫描 `pages/*.html` 自动生成。
+- `sitemap.xml` 遵循标准 sitemaps.org 0.9 协议，仅含 `loc` / `lastmod`，同时服务 Google 和 Bing；**不得添加自定义标签或命名空间**。
+- `tools.json` 是首页导航的数据源，提取各工具页的 title / description 生成工具卡片。
+- 新增页面**无需也不应**手动更新这两个文件；页面 meta 写全后 push 到 main 即自动收录。
+- 首页导航从 `/tools.json` 读工具卡片，本地无该文件时首页显示「加载失败」属正常现象。
 
 ## 验证
 
