@@ -82,7 +82,7 @@ jobs: # 定义工作流中的作业列表
           for f in sorted(pathlib.Path("pages").glob("*.html")):
               content = f.read_text(encoding="utf-8")
               tools.append({
-                  "name": extract_title(content, f.stem),
+                  "name": extract_meta(content, "short-title") or extract_title(content, f.stem),
                   "url": f"/pages/{f.name}",
                   "description": extract_meta(content, "description"),
               })
