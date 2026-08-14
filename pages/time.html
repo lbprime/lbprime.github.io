@@ -798,8 +798,12 @@
 
                     if (days < 0) {
                         months--;
-                        var prevMonth = new Date(b.getFullYear(), b.getMonth(), 0);
-                        days += prevMonth.getDate();
+                        // 借位：从 b 前一个月的天数补齐。当 a 的"日"超过该月天数时
+                        // （如 1月31日 → 3月1日，前一个月是 28 天的 2月），
+                        // 需先把 a 的"日"按该月长度收敛，否则 days 仍是负数，余天会被丢弃。
+                        var prevMonthDays = new Date(b.getFullYear(), b.getMonth(), 0).getDate();
+                        var aDayClamped = Math.min(a.getDate(), prevMonthDays);
+                        days = prevMonthDays - aDayClamped + b.getDate();
                     }
                     if (months < 0) {
                         years--;
