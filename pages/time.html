@@ -708,10 +708,12 @@
                     var timePart = str.length >= 19 ? str.substring(11, 19) : '00:00:00';
                     var dp = datePart.split('-');
                     var tp = timePart.split(':');
-                    return new Date(Date.UTC(
+                    // 用本地时间构造，与 calcCalendarDiff 里的 getDate/getMonth 读取一致，
+                    // 避免 UTC 构造 + 本地读取在跨 UTC 午夜时（东八区 08:00 之后）日期多算一天
+                    return new Date(
                         parseInt(dp[0]), parseInt(dp[1]) - 1, parseInt(dp[2]),
                         parseInt(tp[0]) || 0, parseInt(tp[1]) || 0, parseInt(tp[2]) || 0
-                    ));
+                    );
                 }
                 // 根据当前 diffDateType 格式化日期值
                 function diffDateValue(d) {
@@ -989,10 +991,10 @@
                     const r = dateDiffResult.value;
                     if (!r) return '';
 
-                    // 含截止日期：在 totalDays 基础上 +1 天（同方向），重新计算日历差值
-                    var inclusiveDays = r.totalDays + (r.totalDays >= 0 ? 1 : -1);
+                    // 含截止日期：截止日期按差值方向再推进 1 天，重新计算日历差值
                     var start = parseDateTimeStr(diffStart.value);
-                    var virtualEnd = new Date(start.getTime() + inclusiveDays * 86400000);
+                    var end = parseDateTimeStr(diffEnd.value);
+                    var virtualEnd = new Date(end.getTime() + (r.sign >= 0 ? 86400000 : -86400000));
                     var inclusive = calcCalendarDiff(start, virtualEnd);
 
                     // 同步 totalHours/totalMinutes/totalSeconds 给 小时/分钟/秒 单位使用
