@@ -98,6 +98,7 @@ body{
 ::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
 
 /* ===== Layout ===== */
+#app{flex:1;min-height:0;display:flex;flex-direction:column}
 .runner-wrap{
   flex:1;min-height:0;
   max-width:1600px;width:100%;margin:0 auto;
@@ -243,7 +244,7 @@ body{
   <!-- Output Panel -->
   <div class="panel-output" ref="panelOutput">
     <div class="output-preview" ref="outputPreview">
-      <iframe class="preview-frame" ref="previewFrame" sandbox="allow-scripts" :srcdoc="previewSrc" title="Preview"></iframe>
+      <iframe class="preview-frame" ref="previewFrame" sandbox="allow-scripts" title="Preview"></iframe>
     </div>
   </div>
 </div>
@@ -295,9 +296,6 @@ body{
 <script src="/assets/libs/terser/terser.min.js"></script>
 
 <script>
-(function() {
-'use strict';
-
 // ============================================================
 //  Default Code
 // ============================================================
@@ -337,8 +335,8 @@ var DEFAULT_CODE = [
 '      font-weight: 700;',
 '      color: #1a1a2e;',
 '    }',
-'  </style>',
-'</head>',
+'  <\x2Fstyle>',
+'<\x2Fhead>',
 '<body>',
 '  <h1>Hello, JS Runner!</h1>',
 '  <p>在左侧编辑 HTML / CSS / JS 代码，右侧实时预览。</p>',
@@ -358,8 +356,8 @@ var DEFAULT_CODE = [
 '',
 '    console.log("JS Runner ready 🚀");',
 '  <\x2Fscript>',
-'</body>',
-'</html>',
+'<\x2Fbody>',
+'<\x2Fhtml>',
 ''].join('\n');
 
 // ============================================================
@@ -684,7 +682,6 @@ var app = createApp({
   setup: function () {
     // ---- 状态 ----
     var autoRun = ref(true);
-    var previewSrc = ref('');
     var totalLines = ref(0);
     var statusText = ref('Ready');
     var donateVisible = ref(false);
@@ -695,6 +692,7 @@ var app = createApp({
     var panelEditor = ref(null);
     var resizeHandle = ref(null);
     var resizeOverlay = ref(null);
+    var previewFrame = ref(null);
 
     var editor = null;
     var runTimer = null;
@@ -732,7 +730,8 @@ var app = createApp({
     // ---- 运行 ----
     function runCode() {
       clearTimeout(runTimer);
-      previewSrc.value = editor.getValue();
+      var frame = previewFrame.value;
+      if (frame) frame.srcdoc = editor.getValue();
       statusText.value = 'Output updated';
       setTimeout(function(){
         if (statusText.value === 'Output updated') statusText.value = 'Ready';
@@ -919,7 +918,6 @@ var app = createApp({
 
     return {
       autoRun: autoRun,
-      previewSrc: previewSrc,
       totalLines: totalLines,
       statusText: statusText,
       donateVisible: donateVisible,
@@ -929,6 +927,7 @@ var app = createApp({
       panelEditor: panelEditor,
       resizeHandle: resizeHandle,
       resizeOverlay: resizeOverlay,
+      previewFrame: previewFrame,
       runCode: runCode,
       formatCode: formatCode,
       minifyCode: minifyCode,
@@ -942,8 +941,6 @@ var app = createApp({
 
 app.use(ElementPlus);
 app.mount('#app');
-
-}).call(this);
 </script>
 </body>
 </html>
