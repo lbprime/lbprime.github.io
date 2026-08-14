@@ -236,16 +236,26 @@
         }
 
         .hash-file-meta .file-name {
-            display: block;
+            display: flex;
             flex: 1;
             min-width: 0;
             max-width: 100%;
             font-size: 14px;
             color: #303133;
+            cursor: pointer;
+        }
+
+        /* 主名按宽度省略，扩展名固定完整显示 */
+        .hash-file-meta .file-name-base {
+            min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            cursor: pointer;
+        }
+
+        .hash-file-meta .file-name-ext {
+            flex-shrink: 0;
+            white-space: nowrap;
         }
 
         .hash-file-meta .file-size {
@@ -395,6 +405,9 @@
 
             .hash-body {
                 flex-direction: column;
+                /* column 布局下 align-items 必须为 stretch，否则 .hash-main 宽度收缩到内容，
+                   长文件名会把整页撑开 */
+                align-items: stretch;
             }
 
             .donate-sidebar {
@@ -486,7 +499,10 @@
                                     <el-popover placement="bottom-start" trigger="click" :width="280"
                                         popper-class="hash-file-popover">
                                         <template #reference>
-                                            <span class="file-name">{{ fileDisplayName }}</span>
+                                            <span class="file-name">
+                                                <span class="file-name-base">{{ fileBaseName }}</span><span
+                                                    class="file-name-ext">{{ fileExtName }}</span>
+                                            </span>
                                         </template>
                                         <div class="hash-file-fullname">{{ fileInfo.name }}</div>
                                     </el-popover>
@@ -630,14 +646,17 @@
                     return fileBytes.value !== null;
                 });
 
-                // 文件名过长时截断显示，完整名通过点击浮层查看
-                function ellipsisName(name) {
-                    if (!name || name.length <= 21) return name;
-                    return name.slice(0, 12) + '…' + name.slice(name.length - 8);
-                }
+                // 拆分文件名：主名 + 扩展名（含点），主名按宽度省略、扩展名始终完整显示
+                const fileBaseName = computed(function () {
+                    var name = fileInfo.value ? fileInfo.value.name : '';
+                    var idx = name.lastIndexOf('.');
+                    return idx > 0 ? name.slice(0, idx) : name;
+                });
 
-                const fileDisplayName = computed(function () {
-                    return ellipsisName(fileInfo.value ? fileInfo.value.name : '');
+                const fileExtName = computed(function () {
+                    var name = fileInfo.value ? fileInfo.value.name : '';
+                    var idx = name.lastIndexOf('.');
+                    return idx > 0 ? name.slice(idx) : '';
                 });
 
                 function onTextChange() {
@@ -762,7 +781,8 @@
                     activeTab,
                     textInput,
                     fileInfo,
-                    fileDisplayName,
+                    fileBaseName,
+                    fileExtName,
                     results,
                     loading,
                     statusText,
