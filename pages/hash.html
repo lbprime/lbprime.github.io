@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LBN-Hash计算</title>
+    <meta name="description"
+        content="LBN在线哈希计算工具 - 免费支持MD5、SHA-1、SHA-224、SHA-256、SHA-384、SHA-512等算法，文本与文件均可计算，并标注算法是否已被破解。所有计算在浏览器本地完成，文件不上传，保护隐私安全。">
+    <meta name="keywords"
+        content="哈希计算,Hash计算,MD5,SHA-1,SHA-224,SHA-256,SHA-384,SHA-512,文件哈希,文本哈希,摘要算法,校验和,在线哈希,在线MD5,在线SHA256,hash generator,checksum,数据校验,文件校验,开发者工具,LBN,万能网站">
+    <meta property="og:title" content="LBN-Hash计算 - 在线哈希校验工具">
+    <meta property="og:description" content="免费在线哈希计算工具，支持MD5、SHA-1、SHA-2系列算法，文本与文件均可，标注算法是否已被破解。">
+    <meta property="og:url" content="https://lbprime.github.io/pages/hash.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="LBN万能网站">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:image" content="https://lbprime.github.io/assets/images/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="LBN-Hash计算 - 在线哈希校验工具">
+    <meta name="twitter:description" content="免费在线哈希计算工具，支持MD5、SHA-1、SHA-2系列算法，文本与文件均可，标注算法是否已被破解。">
+    <meta name="twitter:image" content="https://lbprime.github.io/assets/images/og-image.png">
+    <link rel="canonical" href="https://lbprime.github.io/pages/hash.html">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script
+        type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"LBN-Hash计算","url":"https://lbprime.github.io/pages/hash.html","description":"在线哈希计算工具，支持MD5、SHA-1、SHA-2系列算法，文本与文件均可，标注算法是否已被破解。","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+    <link rel="stylesheet" href="/assets/libs/element-plus/element-plus.index.css">
+    <style>
+        body {
+            margin: 0;
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        .hash-tool {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .hash-header {
+            margin-bottom: 12px;
+        }
+
+        .hash-header h3 {
+            margin: 0 0 4px 0;
+            font-size: 20px;
+            color: #303133;
+        }
+
+        .hash-header p {
+            margin: 0;
+            color: #909399;
+            font-size: 13px;
+        }
+
+        .hash-toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+
+        .hash-body {
+            flex: 1;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .hash-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Donate */
+        .donate-sidebar {
+            width: 100px;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 8px;
+            background: #fff;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
+        }
+
+        .donate-sidebar-text {
+            font-size: 12px;
+            color: #909399;
+            letter-spacing: 2px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .donate-sidebar-qrs {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .donate-sidebar-qr {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .donate-sidebar-qr:hover {
+            transform: scale(1.05);
+        }
+
+        .donate-sidebar-qr img {
+            width: 72px;
+            height: 72px;
+            border-radius: 4px;
+            border: 1px solid #e8e8e8;
+            padding: 4px;
+            background: #fff;
+            object-fit: contain;
+        }
+
+        .donate-sidebar-qr span {
+            font-size: 11px;
+            color: #c0c4cc;
+        }
+
+        .donate-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 48px;
+            padding: 16px;
+            flex-wrap: wrap;
+        }
+
+        .donate-img-col {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .donate-img-col img {
+            max-width: 240px;
+            max-height: 360px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            border-radius: 8px;
+            border: 1px solid #e8e8e8;
+            padding: 8px;
+            background: #fff;
+        }
+
+        .donate-img-col p {
+            font-size: 15px;
+            color: #909399;
+            margin-top: 8px;
+        }
+
+        .hash-card {
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e4e7ed;
+            padding: 20px;
+        }
+
+        /* File upload area */
+        .hash-drop {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 32px 20px;
+            border: 1px dashed #dcdfe6;
+            border-radius: 8px;
+            background: #fafbfc;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #909399;
+        }
+
+        .hash-drop:hover,
+        .hash-drop.dragover {
+            border-color: #409eff;
+            background: #ecf5ff;
+            color: #409eff;
+        }
+
+        .hash-drop .drop-icon {
+            font-size: 40px;
+            line-height: 1;
+        }
+
+        .hash-drop .drop-text {
+            font-size: 14px;
+        }
+
+        .hash-drop .drop-hint {
+            font-size: 12px;
+            color: #c0c4cc;
+        }
+
+        .hash-file-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            padding: 12px 14px;
+            background: #f5f7fa;
+            border: 1px solid #e4e7ed;
+            border-radius: 6px;
+        }
+
+        .hash-file-meta .file-name {
+            flex: 1;
+            min-width: 0;
+            font-size: 14px;
+            color: #303133;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .hash-file-meta .file-size {
+            font-size: 12px;
+            color: #909399;
+            flex-shrink: 0;
+        }
+
+        /* Algorithm selection */
+        .hash-select-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .hash-select-label {
+            font-size: 14px;
+            color: #606266;
+            flex-shrink: 0;
+        }
+
+        .hash-algo-select {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 16px;
+        }
+
+        .hash-algo-select .el-checkbox {
+            margin-right: 0;
+            height: 32px;
+        }
+
+        .hash-compute-btn {
+            flex-shrink: 0;
+        }
+
+        /* Results */
+        .hash-results-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .hash-results-head .results-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #303133;
+        }
+
+        .hash-empty {
+            text-align: center;
+            padding: 40px 16px;
+            color: #c0c4cc;
+            font-size: 13px;
+        }
+
+        .hash-result-item {
+            padding: 14px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .hash-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .hash-result-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+
+        .hash-algo-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #303133;
+            font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        .hash-algo-note {
+            font-size: 12px;
+            color: #909399;
+        }
+
+        .hash-result-bottom {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hash-digest {
+            flex: 1;
+            min-width: 0;
+            font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 13px;
+            color: #606266;
+            word-break: break-all;
+            line-height: 1.6;
+            user-select: all;
+        }
+
+        .hash-copy-btn {
+            flex-shrink: 0;
+        }
+
+        .hash-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            font-size: 12px;
+            color: #909399;
+            border-top: 1px solid #e4e7ed;
+            padding-top: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .hash-result-bottom {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .hash-select-card {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .hash-body {
+                flex-direction: column;
+            }
+
+            .donate-sidebar {
+                width: 100%;
+                flex-direction: row;
+                justify-content: center;
+                padding: 8px;
+                gap: 16px;
+            }
+
+            .donate-sidebar-qrs {
+                flex-direction: row;
+                margin-top: 0;
+            }
+
+            .hash-footer {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            /* 弹窗固定 640px 会在窄屏溢出，用变量钳制宽度 */
+            .el-dialog {
+                --el-dialog-width: 92% !important;
+            }
+
+            .donate-content {
+                gap: 16px;
+                padding: 8px;
+            }
+
+            .donate-img-col img {
+                max-width: 140px;
+                max-height: 220px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="hash-tool">
+            <div class="hash-header">
+                <h3>Hash 哈希计算</h3>
+                <p>文本 / 文件哈希 · MD5、SHA-1、SHA-2 系列 · 标注算法是否已被破解</p>
+            </div>
+
+            <div class="hash-toolbar">
+                <el-button @click="goHome"
+                    text><el-icon><home-filled-icon></home-filled-icon></el-icon>&nbsp;返回首页</el-button>
+            </div>
+
+            <div class="hash-body">
+                <div class="donate-sidebar">
+                    <span class="donate-sidebar-text">创作不易<br>打赏一二</span>
+                    <div class="donate-sidebar-qrs">
+                        <div class="donate-sidebar-qr" @click="donateVisible = true">
+                            <img src="/assets/images/donate-wechat.png" alt="微信打赏">
+                            <span>微信</span>
+                        </div>
+                        <div class="donate-sidebar-qr" @click="donateVisible = true">
+                            <img src="/assets/images/donate-alipay.png" alt="支付宝打赏">
+                            <span>支付宝</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hash-main">
+                    <div class="hash-card">
+                        <el-tabs v-model="activeTab" @tab-change="onTabChange">
+                            <el-tab-pane label="文本" name="text">
+                                <el-input v-model="textInput" type="textarea" :rows="5"
+                                    placeholder="在此输入文本，勾选算法后点击「计算」…" @input="onTextChange"></el-input>
+                            </el-tab-pane>
+
+                            <el-tab-pane label="文件" name="file">
+                                <div class="hash-drop" :class="{ dragover: dragOver }" @click="pickFile"
+                                    @dragover.prevent="dragOver = true" @dragleave.prevent="dragOver = false"
+                                    @drop.prevent="onDrop">
+                                    <div class="drop-icon"><el-icon><upload-filled-icon></upload-filled-icon></el-icon>
+                                    </div>
+                                    <div class="drop-text">点击选择文件，或拖拽文件到此处</div>
+                                    <div class="drop-hint">文件内容仅在本地浏览器中计算，不会上传</div>
+                                </div>
+                                <input ref="fileInput" type="file" style="display:none;" @change="onFileChange">
+
+                                <div class="hash-file-meta" v-if="fileInfo">
+                                    <el-icon color="#409eff"><document-icon></document-icon></el-icon>
+                                    <span class="file-name">{{ fileInfo.name }}</span>
+                                    <span class="file-size">{{ fileInfo.sizeText }}</span>
+                                    <el-button size="small" text type="danger" @click="clearFile">
+                                        <el-icon><delete-icon></delete-icon></el-icon>&nbsp;清除
+                                    </el-button>
+                                </div>
+                            </el-tab-pane>
+                        </el-tabs>
+                    </div>
+
+                    <div class="hash-card hash-select-card">
+                        <span class="hash-select-label">算法</span>
+                        <el-checkbox-group v-model="selectedAlgos" class="hash-algo-select">
+                            <el-checkbox v-for="alg in algorithms" :key="alg.key" :value="alg.key">
+                                {{ alg.name }}
+                                <el-tag :type="alg.secure ? 'success' : 'danger'" size="small" effect="plain"
+                                    style="margin-left:2px;">{{ alg.secure ? '安全' : '已破解' }}</el-tag>
+                            </el-checkbox>
+                        </el-checkbox-group>
+                        <el-button class="hash-compute-btn" type="primary" :disabled="!canCompute" :loading="loading"
+                            @click="compute">计算</el-button>
+                    </div>
+
+                    <div class="hash-card">
+                        <div class="hash-results-head">
+                            <span class="results-title">计算结果</span>
+                            <el-button size="small" :disabled="!hasResults" @click="copyAll">
+                                <el-icon><copy-document-icon></copy-document-icon></el-icon>&nbsp;复制全部
+                            </el-button>
+                        </div>
+
+                        <div v-if="loading" class="hash-empty">计算中…</div>
+                        <div v-else-if="!hasResults" class="hash-empty">
+                            输入文本或选择文件、勾选算法后，点击「计算」查看结果
+                        </div>
+                        <div v-else>
+                            <div class="hash-result-item" v-for="r in results" :key="r.key">
+                                <div class="hash-result-top">
+                                    <span class="hash-algo-name">{{ r.name }}</span>
+                                    <el-tag v-if="r.secure" type="success" size="small" effect="light">安全</el-tag>
+                                    <el-tag v-else type="danger" size="small" effect="light">已破解</el-tag>
+                                    <span class="hash-algo-note">{{ r.note }}</span>
+                                </div>
+                                <div class="hash-result-bottom">
+                                    <div class="hash-digest">{{ r.hex }}</div>
+                                    <el-button class="hash-copy-btn" size="small" @click="copyOne(r)">
+                                        <el-icon><document-copy-icon></document-copy-icon></el-icon>&nbsp;复制
+                                    </el-button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hash-footer">
+                <span>所有计算均在浏览器本地完成，文件不上传</span>
+                <span>{{ statusText }}</span>
+            </div>
+        </div>
+
+        <el-dialog v-model="donateVisible" title="创作不易，打赏一二" width="640px" center>
+            <div class="donate-content">
+                <div class="donate-img-col">
+                    <img src="/assets/images/donate-wechat.png" alt="微信打赏">
+                    <p>微信</p>
+                </div>
+                <div class="donate-img-col">
+                    <img src="/assets/images/donate-alipay.png" alt="支付宝打赏">
+                    <p>支付宝</p>
+                </div>
+            </div>
+        </el-dialog>
+    </div>
+
+    <script src="/assets/libs/vue/vue.global.prod.js"></script>
+    <script src="/assets/libs/element-plus/element-plus.index.full.min.js"></script>
+    <script src="/assets/libs/element-plus/element-plus.icons.iife.min.js"></script>
+    <script src="/assets/libs/crypto-js/crypto-js.min.js"></script>
+
+    <script type="text/javascript">
+        const { createApp, ref, computed } = Vue;
+
+        // 算法清单：Web Crypto 原生支持的走 crypto.subtle.digest，其余走 CryptoJS。
+        const ALGORITHMS = [
+            { key: 'md5', name: 'MD5', impl: 'cryptojs', cj: 'MD5', secure: false, note: '碰撞攻击（2004），勿用于安全校验' },
+            { key: 'sha1', name: 'SHA-1', impl: 'webcrypto', wc: 'SHA-1', secure: false, note: 'SHAttered 碰撞（2017），已弃用' },
+            { key: 'sha224', name: 'SHA-224', impl: 'cryptojs', cj: 'SHA224', secure: true, note: 'SHA-2 家族，当前安全' },
+            { key: 'sha256', name: 'SHA-256', impl: 'webcrypto', wc: 'SHA-256', secure: true, note: 'SHA-2 家族，当前安全，最常用' },
+            { key: 'sha384', name: 'SHA-384', impl: 'webcrypto', wc: 'SHA-384', secure: true, note: 'SHA-2 家族，当前安全' },
+            { key: 'sha512', name: 'SHA-512', impl: 'webcrypto', wc: 'SHA-512', secure: true, note: 'SHA-2 家族，当前安全' }
+        ];
+
+        function bytesToHex(buf) {
+            var arr = new Uint8Array(buf);
+            var hex = '';
+            for (var i = 0; i < arr.length; i++) hex += ('0' + arr[i].toString(16)).slice(-2);
+            return hex;
+        }
+
+        function bytesToWordArray(bytes) {
+            var words = new Array(Math.ceil(bytes.length / 4));
+            for (var i = 0; i < bytes.length; i++) {
+                var wi = i >>> 2;
+                words[wi] = (words[wi] || 0) | (bytes[i] << (24 - (i % 4) * 8));
+            }
+            return CryptoJS.lib.WordArray.create(words, bytes.length);
+        }
+
+        function formatSize(n) {
+            if (n < 1024) return n + ' B';
+            if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+            if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(2) + ' MB';
+            return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+        }
+
+        const app = createApp({
+            setup() {
+                const activeTab = ref('text');
+                const textInput = ref('');
+                const fileInfo = ref(null);
+                const fileBytes = ref(null);
+                const results = ref([]);
+                const loading = ref(false);
+                const statusText = ref('');
+                const dragOver = ref(false);
+                const fileInput = ref(null);
+                const selectedAlgos = ref(['md5', 'sha256', 'sha512']);
+                const donateVisible = ref(false);
+
+                let computeSeq = 0;
+
+                const hasResults = computed(function () {
+                    return results.value.length > 0;
+                });
+
+                const canCompute = computed(function () {
+                    if (activeTab.value === 'text') return textInput.value.length > 0;
+                    return fileBytes.value !== null;
+                });
+
+                function onTextChange() {
+                    results.value = [];
+                }
+
+                function onTabChange() {
+                    results.value = [];
+                }
+
+                function compute() {
+                    var bytes;
+                    if (activeTab.value === 'text') {
+                        if (!textInput.value) {
+                            ElementPlus.ElMessage.warning('请先输入文本');
+                            return;
+                        }
+                        bytes = new TextEncoder().encode(textInput.value);
+                    } else {
+                        if (!fileBytes.value) {
+                            ElementPlus.ElMessage.warning('请先选择文件');
+                            return;
+                        }
+                        bytes = fileBytes.value;
+                    }
+                    if (selectedAlgos.value.length === 0) {
+                        ElementPlus.ElMessage.warning('请至少选择一种算法');
+                        return;
+                    }
+                    runCompute(bytes);
+                }
+
+                async function runCompute(bytes) {
+                    var seq = ++computeSeq;
+                    loading.value = true;
+                    try {
+                        var wordArray = bytesToWordArray(bytes);
+                        var keys = selectedAlgos.value;
+                        var out = [];
+                        for (var i = 0; i < ALGORITHMS.length; i++) {
+                            var alg = ALGORITHMS[i];
+                            if (keys.indexOf(alg.key) === -1) continue;
+                            var hex;
+                            if (alg.impl === 'cryptojs') {
+                                hex = CryptoJS[alg.cj](wordArray).toString();
+                            } else {
+                                var buf = await crypto.subtle.digest(alg.wc, bytes);
+                                hex = bytesToHex(buf);
+                            }
+                            out.push({ key: alg.key, name: alg.name, secure: alg.secure, note: alg.note, hex: hex });
+                        }
+                        if (seq === computeSeq) results.value = out;
+                    } finally {
+                        if (seq === computeSeq) loading.value = false;
+                    }
+                }
+
+                function pickFile() {
+                    if (fileInput.value) fileInput.value.click();
+                }
+
+                function onFileChange(e) {
+                    var file = e.target.files && e.target.files[0];
+                    e.target.value = '';
+                    if (!file) return;
+                    handleFile(file);
+                }
+
+                function onDrop(e) {
+                    dragOver.value = false;
+                    var file = e.dataTransfer.files && e.dataTransfer.files[0];
+                    if (file) handleFile(file);
+                }
+
+                async function handleFile(file) {
+                    fileInfo.value = { name: file.name, sizeText: formatSize(file.size) };
+                    results.value = [];
+                    computeSeq++;
+                    try {
+                        fileBytes.value = new Uint8Array(await file.arrayBuffer());
+                    } catch (err) {
+                        fileBytes.value = null;
+                        ElementPlus.ElMessage.error('读取文件失败：' + (err.message || err));
+                    }
+                }
+
+                function clearFile() {
+                    computeSeq++;
+                    fileInfo.value = null;
+                    fileBytes.value = null;
+                    results.value = [];
+                    loading.value = false;
+                    if (fileInput.value) fileInput.value.value = '';
+                }
+
+                async function writeClipboard(text) {
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        statusText.value = '已复制到剪贴板';
+                        setTimeout(function () { statusText.value = ''; }, 2000);
+                    } catch (e) {
+                        ElementPlus.ElMessage.error('复制失败，请手动复制');
+                    }
+                }
+
+                function copyOne(r) {
+                    writeClipboard(r.hex);
+                }
+
+                function copyAll() {
+                    var lines = results.value.map(function (r) {
+                        return r.name + ': ' + r.hex;
+                    });
+                    writeClipboard(lines.join('\n'));
+                }
+
+                function goHome() {
+                    window.location.href = '/';
+                }
+
+                return {
+                    activeTab,
+                    textInput,
+                    fileInfo,
+                    results,
+                    loading,
+                    statusText,
+                    dragOver,
+                    fileInput,
+                    selectedAlgos,
+                    donateVisible,
+                    algorithms: ALGORITHMS,
+                    hasResults,
+                    canCompute,
+                    onTextChange,
+                    onTabChange,
+                    compute,
+                    pickFile,
+                    onFileChange,
+                    onDrop,
+                    clearFile,
+                    copyOne,
+                    copyAll,
+                    goHome
+                };
+            }
+        });
+
+        app.component('home-filled-icon', ElementPlusIconsVue.HomeFilled);
+        app.component('document-copy-icon', ElementPlusIconsVue.DocumentCopy);
+        app.component('upload-filled-icon', ElementPlusIconsVue.UploadFilled);
+        app.component('document-icon', ElementPlusIconsVue.Document);
+        app.component('delete-icon', ElementPlusIconsVue.Delete);
+        app.component('copy-document-icon', ElementPlusIconsVue.CopyDocument);
+
+        app.use(ElementPlus);
+        app.mount('#app');
+    </script>
+</body>
+
+</html>

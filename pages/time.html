@@ -389,6 +389,37 @@
                 flex-direction: row;
                 margin-top: 0;
             }
+
+            .time-footer {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            /* 弹窗固定 640px 会在窄屏溢出，用变量钳制宽度 */
+            .el-dialog {
+                --el-dialog-width: 92% !important;
+            }
+
+            /* 打赏弹窗取消桌面端的固定高度，避免手机上出现超长弹窗 */
+            .donate-content {
+                height: auto;
+                min-height: 0;
+                gap: 16px;
+                padding: 8px;
+            }
+
+            .donate-img-col img {
+                max-width: 140px;
+                max-height: 220px;
+            }
+
+            /* 日期选择器在纵向布局下撑满整行 */
+            .time-form-row .el-date-editor,
+            .diff-date-row .el-date-editor {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
         }
     </style>
 </head>

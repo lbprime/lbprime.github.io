@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="/assets/libs/codemirror/codemirror.min.css">
 <link rel="stylesheet" href="/assets/libs/codemirror/theme/dracula.min.css">
 <link rel="stylesheet" href="/assets/libs/codemirror/addon/fold/foldgutter.min.css">
+<link rel="stylesheet" href="/assets/libs/element-plus/element-plus.index.css">
 
 <style>
 /* ===== Site Design Tokens ===== */
@@ -113,24 +114,7 @@ body{
 .runner-header h3{font-size:18px;font-weight:700;color:var(--text-primary);letter-spacing:-0.3px}
 .runner-header p{font-size:13px;color:var(--text-muted)}
 .header-actions{display:flex;align-items:center;gap:8px}
-.home-link{text-decoration:none;font-size:13px;color:var(--text-muted);transition:color var(--transition)}
-.home-link:hover{color:var(--accent)}
-
-/* ===== Buttons ===== */
-.btn{
-  display:inline-flex;align-items:center;gap:4px;padding:6px 14px;
-  border:1px solid var(--border);border-radius:var(--radius);
-  background:var(--card-bg);color:var(--text-primary);
-  font-size:13px;font-family:var(--font-ui);cursor:pointer;
-  white-space:nowrap;line-height:1.4;transition:all var(--transition);user-select:none;
-}
-.btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn:active{transform:scale(0.97)}
-.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
-.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:#fff}
-.btn-sm{padding:3px 10px;font-size:12px}
-.btn-icon{padding:6px;width:32px;height:32px;justify-content:center;font-size:15px}
-.btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.header-actions .el-button + .el-button{margin-left:0}
 
 /* ===== Main ===== */
 .runner-main{flex:1;display:flex;min-height:0;position:relative;overflow:hidden}
@@ -184,21 +168,10 @@ body{
 .resize-active{user-select:none!important;-webkit-user-select:none!important}
 
 /* Donate dialog */
-.donate-dialog-overlay{
-  display:none;position:fixed;inset:0;z-index:999;
-  background:rgba(0,0,0,0.5);align-items:center;justify-content:center;
-}
-.donate-dialog-overlay.active{display:flex}
-.donate-dialog{
-  background:var(--card-bg);border-radius:8px;padding:28px 36px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.15);max-width:560px;width:90%;
-}
-.donate-dialog h3{text-align:center;font-size:17px;margin-bottom:20px;color:var(--text-primary)}
-.donate-dialog-body{display:flex;justify-content:center;gap:40px}
+.donate-content{display:flex;justify-content:center;gap:40px}
 .donate-img-col{text-align:center}
 .donate-img-col img{width:200px;height:200px;border-radius:4px;border:1px solid var(--border-card);padding:6px;background:#fff;object-fit:contain}
 .donate-img-col p{margin-top:8px;font-size:14px;color:var(--text-muted)}
-.donate-dialog-close{display:block;margin:20px auto 0}
 
 /* ===== Footer ===== */
 .runner-footer{
@@ -217,12 +190,12 @@ body{
   .panel-output{height:52%}
   .resize-handle{width:100%;height:var(--divider-w);cursor:row-resize}
   .resize-overlay{cursor:row-resize}
-  .header-actions .btn span.btn-label{display:none}
 }
 </style>
 </head>
 <body>
 
+<div id="app">
 <div class="runner-wrap">
 
 <!-- ===== Header ===== -->
@@ -232,26 +205,26 @@ body{
     <p>在线 HTML / CSS / JavaScript 代码运行与调试</p>
   </div>
   <div class="header-actions">
-    <button class="btn btn-sm active" id="btn-auto" title="自动运行">Auto</button>
-    <button class="btn btn-sm" id="btn-format" title="格式化代码 (HTML+CSS+JS)">Format</button>
-    <button class="btn btn-sm" id="btn-minify" title="压缩代码 (HTML+CSS+JS)">Minify</button>
-    <button class="btn btn-primary btn-sm" id="btn-run" title="运行 (Ctrl+Enter)">▶ <span class="btn-label">Run</span></button>
-    <button class="btn btn-icon btn-sm" id="btn-theme" title="主题切换">☀</button>
-    <a href="/" class="home-link" style="margin-left:4px">← 首页</a>
+    <el-button size="small" :type="autoRun ? 'primary' : 'default'" @click="toggleAuto" title="自动运行">{{ autoRun ? 'Auto' : 'Manual' }}</el-button>
+    <el-button size="small" @click="formatCode" title="格式化代码 (HTML+CSS+JS)">Format</el-button>
+    <el-button size="small" @click="minifyCode" title="压缩代码 (HTML+CSS+JS)">Minify</el-button>
+    <el-button size="small" type="primary" @click="runCode" title="运行 (Ctrl+Enter)">▶ Run</el-button>
+    <el-button size="small" @click="toggleTheme" title="主题切换">{{ themeBtn }}</el-button>
+    <el-button size="small" text @click="goHome">← 首页</el-button>
   </div>
 </header>
 
 <!-- ===== Main ===== -->
-<div class="runner-main" id="runner-main">
+<div class="runner-main" ref="runnerMain">
   <!-- Donate Sidebar -->
   <div class="donate-sidebar">
     <span class="donate-sidebar-text">创作不易<br>打赏一二</span>
     <div class="donate-sidebar-qrs">
-      <div class="donate-sidebar-qr" id="donate-wx">
+      <div class="donate-sidebar-qr" @click="donateVisible = true">
         <img src="/assets/images/donate-wechat.png" alt="微信打赏" width="60" height="60">
         <span>微信</span>
       </div>
-      <div class="donate-sidebar-qr" id="donate-zfb">
+      <div class="donate-sidebar-qr" @click="donateVisible = true">
         <img src="/assets/images/donate-alipay.png" alt="支付宝打赏" width="60" height="60">
         <span>支付宝</span>
       </div>
@@ -259,51 +232,52 @@ body{
   </div>
 
   <!-- Editor Panel -->
-  <div class="panel-editor" id="panel-editor">
-    <div class="editor-body" id="editor-body"></div>
+  <div class="panel-editor" ref="panelEditor">
+    <div class="editor-body" ref="editorBody"></div>
   </div>
 
   <!-- Horizontal Resize Handle -->
-  <div class="resize-handle" id="resize-handle"></div>
-  <div class="resize-overlay" id="resize-overlay"></div>
+  <div class="resize-handle" ref="resizeHandle" @mousedown="startResize" @touchstart="startResize"></div>
+  <div class="resize-overlay" ref="resizeOverlay"></div>
 
   <!-- Output Panel -->
-  <div class="panel-output" id="panel-output">
-    <div class="output-preview" id="output-preview">
-      <iframe class="preview-frame" id="preview-iframe" sandbox="allow-scripts" title="Preview"></iframe>
+  <div class="panel-output" ref="panelOutput">
+    <div class="output-preview" ref="outputPreview">
+      <iframe class="preview-frame" ref="previewFrame" sandbox="allow-scripts" :srcdoc="previewSrc" title="Preview"></iframe>
     </div>
-  </div>
-</div>
-
-<!-- ===== Donate Dialog ===== -->
-<div class="donate-dialog-overlay" id="donate-dialog">
-  <div class="donate-dialog">
-    <h3>创作不易，打赏一二</h3>
-    <div class="donate-dialog-body">
-      <div class="donate-img-col">
-        <img src="/assets/images/donate-wechat.png" alt="微信打赏">
-        <p>微信</p>
-      </div>
-      <div class="donate-img-col">
-        <img src="/assets/images/donate-alipay.png" alt="支付宝打赏">
-        <p>支付宝</p>
-      </div>
-    </div>
-    <button class="btn btn-sm donate-dialog-close" id="donate-dialog-close">关闭</button>
   </div>
 </div>
 
 <!-- ===== Footer ===== -->
 <div class="runner-footer">
   <div class="stats">
-    <span>Total: <strong id="stat-total">0</strong> 行</span>
+    <span>Total: <strong>{{ totalLines }}</strong> 行</span>
   </div>
-  <span id="status-text">Ready</span>
+  <span>{{ statusText }}</span>
 </div>
 
 </div><!-- .runner-wrap -->
 
+<!-- ===== Donate Dialog ===== -->
+<el-dialog v-model="donateVisible" title="创作不易，打赏一二" width="640px" center>
+  <div class="donate-content">
+    <div class="donate-img-col">
+      <img src="/assets/images/donate-wechat.png" alt="微信打赏">
+      <p>微信</p>
+    </div>
+    <div class="donate-img-col">
+      <img src="/assets/images/donate-alipay.png" alt="支付宝打赏">
+      <p>支付宝</p>
+    </div>
+  </div>
+</el-dialog>
+
+</div><!-- #app -->
+
 <!-- ===== Scripts (all local) ===== -->
+<script src="/assets/libs/vue/vue.global.prod.js"></script>
+<script src="/assets/libs/element-plus/element-plus.index.full.min.js"></script>
+<script src="/assets/libs/element-plus/element-plus.icons.iife.min.js"></script>
 <script src="/assets/libs/codemirror/codemirror.min.js"></script>
 <script src="/assets/libs/codemirror/mode/xml/xml.min.js"></script>
 <script src="/assets/libs/codemirror/mode/javascript/javascript.min.js"></script>
@@ -389,81 +363,8 @@ var DEFAULT_CODE = [
 ''].join('\n');
 
 // ============================================================
-//  State
+//  CSS Formatter (kept verbatim)
 // ============================================================
-var editor;
-var autoRun = true;
-var runTimer = null;
-var STORAGE_KEY = 'jsrunner_v4';
-
-// ============================================================
-//  Shortcuts
-// ============================================================
-var $ = function(s){return document.querySelector(s);};
-
-// ============================================================
-//  Initialize Editor
-// ============================================================
-function cmOpts() {
-  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  return {
-    mode: 'htmlmixed',
-    theme: isDark ? 'dracula' : 'default',
-    lineNumbers: true,
-    matchBrackets: true,
-    autoCloseBrackets: true,
-    styleActiveLine: true,
-    foldGutter: true,
-    gutters: ['CodeMirror-linenumbers','CodeMirror-foldgutter'],
-    indentUnit: 2,
-    tabSize: 2,
-    indentWithTabs: false,
-    extraKeys: {
-      'Ctrl-Enter': runCode, 'Cmd-Enter': runCode,
-      'Ctrl-S': runCode,     'Cmd-S': runCode,
-      'Shift-Alt-F': formatCode
-    }
-  };
-}
-
-editor = CodeMirror(document.getElementById('editor-body'), cmOpts());
-editor.setValue(DEFAULT_CODE);
-
-editor.on('change', function(){
-  if (autoRun) { clearTimeout(runTimer); runTimer = setTimeout(runCode, 500); }
-  updateStats();
-  saveStorage();
-});
-
-// ============================================================
-//  Stats
-// ============================================================
-function updateStats() {
-  var el = $('#stat-total');
-  if (el) el.textContent = editor.lineCount();
-}
-
-// ============================================================
-//  Run
-// ============================================================
-function runCode() {
-  clearTimeout(runTimer);
-  var iframe = document.getElementById('preview-iframe');
-  if (iframe) iframe.srcdoc = editor.getValue();
-
-  var st = $('#status-text'); if (st) st.textContent = 'Output updated';
-  setTimeout(function(){
-    var st2 = $('#status-text'); if (st2) st2.textContent = 'Ready';
-  }, 2000);
-}
-
-// ============================================================
-//  Format (beautify entire HTML document)
-// ============================================================
-
-/**
- * Format CSS content within <style> blocks.
- */
 function _formatCss(css) {
   // Remove leading/trailing whitespace while preserving internal structure
   css = css.trim();
@@ -547,9 +448,6 @@ function _formatCss(css) {
   return result.replace(/\n\s*\n\s*\n/g, '\n\n').replace(/^\n+/, '').trim();
 }
 
-/**
- * Format HTML document: properly indent tags, beautify inline <style> and <script> blocks.
- */
 function formatHtml(html) {
   // === Step 1: Extract and format style blocks ===
   var styleBlocks = [];
@@ -698,25 +596,9 @@ function formatHtml(html) {
   return result.replace(/^\n+/, '').trim() + '\n';
 }
 
-function formatCode() {
-  var code = editor.getValue();
-  if (!code.trim()) return;
-  try {
-    var formatted = formatHtml(code);
-    editor.setValue(formatted);
-    var st = $('#status-text'); if (st) st.textContent = '格式化完成';
-  } catch(e) {
-    var st2 = $('#status-text'); if (st2) st2.textContent = '格式化失败: ' + e.message;
-  }
-}
-
 // ============================================================
 //  Minify (compress entire HTML document)
 // ============================================================
-
-/**
- * Minify CSS content: remove comments, collapse whitespace.
- */
 function _minifyCss(css) {
   // Remove comments
   css = css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -792,220 +674,276 @@ function minifyHtml(html) {
   return result.trim();
 }
 
-function minifyCode() {
-  var code = editor.getValue();
-  if (!code.trim()) return;
-  try {
-    var minified = minifyHtml(code);
-    editor.setValue(minified);
-    var st = $('#status-text'); if (st) st.textContent = '压缩完成';
-  } catch(e) {
-    var st2 = $('#status-text'); if (st2) st2.textContent = '压缩失败: ' + e.message;
-  }
-}
-
 // ============================================================
-//  Resize (horizontal: editor | output)
+//  Vue App
 // ============================================================
-var resizeState = null;
+var _v = Vue;
+var createApp = _v.createApp, ref = _v.ref, onMounted = _v.onMounted;
 
-function resizeRAF(e) {
-  if (!resizeState) return;
-  var clientX, clientY;
-  if (e.touches) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
-  else { clientX = e.clientX; clientY = e.clientY; }
+var app = createApp({
+  setup: function () {
+    // ---- 状态 ----
+    var autoRun = ref(true);
+    var previewSrc = ref('');
+    var totalLines = ref(0);
+    var statusText = ref('Ready');
+    var donateVisible = ref(false);
+    var themeBtn = ref('☀');
 
-  var rs = resizeState, rect = rs.rect;
+    var editorBody = ref(null);
+    var runnerMain = ref(null);
+    var panelEditor = ref(null);
+    var resizeHandle = ref(null);
+    var resizeOverlay = ref(null);
 
-  if (window.innerWidth <= 768) {
-    var pct = Math.max(20, Math.min(80, ((clientY - rect.top) / (rect.height - 5)) * 100));
-    rs.el.style.height = pct + '%'; rs.el.style.width = '100%';
-  } else {
-    var pctH = Math.max(20, Math.min(80, ((clientX - rect.left) / (rect.width - 5)) * 100));
-    rs.el.style.width = pctH + '%'; rs.el.style.height = '100%';
-  }
-}
+    var editor = null;
+    var runTimer = null;
+    var resizeState = null;
+    var STORAGE_KEY = 'jsrunner_v4';
 
-function onResizeMove(e) {
-  if (!resizeState) return;
-  if (resizeState.raf) return;
-  resizeState.raf = requestAnimationFrame(function(){
-    resizeState.raf = null;
-    resizeRAF(e);
-    if (editor) editor.refresh();
-  });
-}
-
-function startResize(e) {
-  var handle = $('#resize-handle');
-  var el = $('#panel-editor');
-  var overlay = $('#resize-overlay');
-  var main = $('#runner-main');
-  if (!handle || !el || !overlay || !main) return;
-
-  handle.classList.add('active');
-  overlay.classList.add('active');
-  var cursor = window.innerWidth <= 768 ? 'row-resize' : 'col-resize';
-  overlay.style.cursor = cursor;
-  document.body.classList.add('resize-active');
-  document.body.style.cursor = cursor;
-
-  resizeState = { rect: main.getBoundingClientRect(), el: el, raf: null };
-  e.preventDefault();
-}
-
-function stopResize() {
-  if (!resizeState) return;
-  if (resizeState.raf) { cancelAnimationFrame(resizeState.raf); }
-
-  var handle = $('#resize-handle');
-  if (handle) handle.classList.remove('active');
-
-  var overlay = $('#resize-overlay');
-  if (overlay) { overlay.classList.remove('active'); overlay.style.cursor = ''; }
-
-  document.body.classList.remove('resize-active');
-  document.body.style.cursor = '';
-  resizeState = null;
-}
-
-// Mouse events
-var hHandle = $('#resize-handle');
-if (hHandle) { hHandle.addEventListener('mousedown', function(e){ startResize(e); }); }
-
-document.addEventListener('mousemove', onResizeMove);
-document.addEventListener('mouseup', stopResize);
-
-// Touch events
-if (hHandle) { hHandle.addEventListener('touchstart', function(e){ startResize(e); }); }
-
-document.addEventListener('touchmove', onResizeMove);
-document.addEventListener('touchend', stopResize);
-
-// ============================================================
-//  Theme
-// ============================================================
-function toggleTheme() {
-  var html = document.documentElement;
-  var cur = html.getAttribute('data-theme');
-  var next = cur === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', next);
-
-  var cmTheme = next === 'dark' ? 'dracula' : 'default';
-  if (editor) editor.setOption('theme', cmTheme);
-
-  var btn = $('#btn-theme'); if (btn) btn.textContent = next === 'dark' ? '☀' : '☾';
-  try { localStorage.setItem('jsrunner_theme', next); } catch(e) {}
-}
-
-var btnTheme = $('#btn-theme');
-if (btnTheme) btnTheme.addEventListener('click', toggleTheme);
-
-// Restore saved theme
-(function(){
-  try {
-    if (localStorage.getItem('jsrunner_theme') === 'dark') toggleTheme();
-  } catch(e) {}
-})();
-
-// ============================================================
-//  Auto-run toggle
-// ============================================================
-var btnAuto = $('#btn-auto');
-if (btnAuto) {
-  btnAuto.addEventListener('click', function(){
-    autoRun = !autoRun;
-    btnAuto.classList.toggle('active', autoRun);
-    btnAuto.textContent = autoRun ? 'Auto' : 'Manual';
-    try { localStorage.setItem('jsrunner_auto', String(autoRun)); } catch(e) {}
-  });
-}
-
-(function(){
-  try {
-    if (localStorage.getItem('jsrunner_auto') === 'false') {
-      autoRun = false;
-      var b = $('#btn-auto');
-      if (b) { b.classList.remove('active'); b.textContent = 'Manual'; }
+    // ---- 编辑器选项 ----
+    function cmOpts() {
+      var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      return {
+        mode: 'htmlmixed',
+        theme: isDark ? 'dracula' : 'default',
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        styleActiveLine: true,
+        foldGutter: true,
+        gutters: ['CodeMirror-linenumbers','CodeMirror-foldgutter'],
+        indentUnit: 2,
+        tabSize: 2,
+        indentWithTabs: false,
+        extraKeys: {
+          'Ctrl-Enter': runCode, 'Cmd-Enter': runCode,
+          'Ctrl-S': runCode,     'Cmd-S': runCode,
+          'Shift-Alt-F': formatCode
+        }
+      };
     }
-  } catch(e) {}
-})();
 
-// ============================================================
-//  Button bindings
-// ============================================================
-var btnRun = $('#btn-run'); if (btnRun) btnRun.addEventListener('click', runCode);
-var btnFmt = $('#btn-format'); if (btnFmt) btnFmt.addEventListener('click', formatCode);
-var btnMin = $('#btn-minify'); if (btnMin) btnMin.addEventListener('click', minifyCode);
+    // ---- 状态更新 ----
+    function updateStats() {
+      totalLines.value = editor.lineCount();
+    }
 
-// Donate
-var donateWx = $('#donate-wx'); if (donateWx) donateWx.addEventListener('click', function(){ $('#donate-dialog').classList.add('active'); });
-var donateZfb = $('#donate-zfb'); if (donateZfb) donateZfb.addEventListener('click', function(){ $('#donate-dialog').classList.add('active'); });
-var donateClose = $('#donate-dialog-close'); if (donateClose) donateClose.addEventListener('click', function(){ $('#donate-dialog').classList.remove('active'); });
-var donateOverlay = $('#donate-dialog'); if (donateOverlay) donateOverlay.addEventListener('click', function(e){ if (e.target === donateOverlay) donateOverlay.classList.remove('active'); });
+    // ---- 运行 ----
+    function runCode() {
+      clearTimeout(runTimer);
+      previewSrc.value = editor.getValue();
+      statusText.value = 'Output updated';
+      setTimeout(function(){
+        if (statusText.value === 'Output updated') statusText.value = 'Ready';
+      }, 2000);
+    }
 
-// ============================================================
-//  Keyboard shortcuts
-// ============================================================
-document.addEventListener('keydown', function(e){
-  // Don't intercept when focus is in another input
-  var tag = e.target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    // ---- 格式化 ----
+    function formatCode() {
+      var code = editor.getValue();
+      if (!code.trim()) return;
+      try {
+        var formatted = formatHtml(code);
+        editor.setValue(formatted);
+        statusText.value = '格式化完成';
+      } catch(e) {
+        statusText.value = '格式化失败: ' + e.message;
+      }
+    }
 
-  var ctrl = e.ctrlKey || e.metaKey;
-  if (ctrl && (e.key === 'Enter' || e.key === 's')) { e.preventDefault(); runCode(); }
-  if (ctrl && e.shiftKey && e.key === 'F') { e.preventDefault(); formatCode(); }
+    // ---- 压缩 ----
+    function minifyCode() {
+      var code = editor.getValue();
+      if (!code.trim()) return;
+      try {
+        var minified = minifyHtml(code);
+        editor.setValue(minified);
+        statusText.value = '压缩完成';
+      } catch(e) {
+        statusText.value = '压缩失败: ' + e.message;
+      }
+    }
+
+    // ---- Resize (horizontal: editor | output) ----
+    function resizeRAF(e) {
+      if (!resizeState) return;
+      var clientX, clientY;
+      if (e.touches) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+      else { clientX = e.clientX; clientY = e.clientY; }
+
+      var rs = resizeState, rect = rs.rect;
+
+      if (window.innerWidth <= 768) {
+        var pct = Math.max(20, Math.min(80, ((clientY - rect.top) / (rect.height - 5)) * 100));
+        rs.el.style.height = pct + '%'; rs.el.style.width = '100%';
+      } else {
+        var pctH = Math.max(20, Math.min(80, ((clientX - rect.left) / (rect.width - 5)) * 100));
+        rs.el.style.width = pctH + '%'; rs.el.style.height = '100%';
+      }
+    }
+
+    function onResizeMove(e) {
+      if (!resizeState) return;
+      if (resizeState.raf) return;
+      resizeState.raf = requestAnimationFrame(function(){
+        resizeState.raf = null;
+        resizeRAF(e);
+        if (editor) editor.refresh();
+      });
+    }
+
+    function startResize(e) {
+      var handle = resizeHandle.value;
+      var el = panelEditor.value;
+      var overlay = resizeOverlay.value;
+      var main = runnerMain.value;
+      if (!handle || !el || !overlay || !main) return;
+
+      handle.classList.add('active');
+      overlay.classList.add('active');
+      var cursor = window.innerWidth <= 768 ? 'row-resize' : 'col-resize';
+      overlay.style.cursor = cursor;
+      document.body.classList.add('resize-active');
+      document.body.style.cursor = cursor;
+
+      resizeState = { rect: main.getBoundingClientRect(), el: el, raf: null };
+      e.preventDefault();
+    }
+
+    function stopResize() {
+      if (!resizeState) return;
+      if (resizeState.raf) { cancelAnimationFrame(resizeState.raf); }
+
+      var handle = resizeHandle.value;
+      if (handle) handle.classList.remove('active');
+
+      var overlay = resizeOverlay.value;
+      if (overlay) { overlay.classList.remove('active'); overlay.style.cursor = ''; }
+
+      document.body.classList.remove('resize-active');
+      document.body.style.cursor = '';
+      resizeState = null;
+    }
+
+    // ---- Theme ----
+    function toggleTheme() {
+      var html = document.documentElement;
+      var cur = html.getAttribute('data-theme');
+      var next = cur === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+
+      var cmTheme = next === 'dark' ? 'dracula' : 'default';
+      if (editor) editor.setOption('theme', cmTheme);
+
+      themeBtn.value = next === 'dark' ? '☀' : '☾';
+      try { localStorage.setItem('jsrunner_theme', next); } catch(e) {}
+    }
+
+    function toggleAuto() {
+      autoRun.value = !autoRun.value;
+      try { localStorage.setItem('jsrunner_auto', String(autoRun.value)); } catch(e) {}
+    }
+
+    // ---- Storage ----
+    function saveStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ code: editor.getValue() }));
+      } catch(e) {}
+    }
+
+    function restoreStorage() {
+      try {
+        var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && saved.code) {
+          editor.setValue(saved.code);
+          return true;
+        }
+      } catch(e) {}
+      return false;
+    }
+
+    function goHome() {
+      window.location.href = '/';
+    }
+
+    // ---- Keyboard shortcuts ----
+    function onKeydown(e) {
+      var tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      var ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && (e.key === 'Enter' || e.key === 's')) { e.preventDefault(); runCode(); }
+      if (ctrl && e.shiftKey && e.key === 'F') { e.preventDefault(); formatCode(); }
+    }
+
+    // ---- Init ----
+    onMounted(function () {
+      if (typeof CodeMirror === 'undefined') return;
+
+      editor = CodeMirror(editorBody.value, cmOpts());
+      editor.setValue(DEFAULT_CODE);
+
+      editor.on('change', function(){
+        if (autoRun.value) { clearTimeout(runTimer); runTimer = setTimeout(runCode, 500); }
+        updateStats();
+        saveStorage();
+      });
+
+      restoreStorage();
+      updateStats();
+      runCode();
+
+      document.addEventListener('mousemove', onResizeMove);
+      document.addEventListener('mouseup', stopResize);
+      document.addEventListener('touchmove', onResizeMove);
+      document.addEventListener('touchend', stopResize);
+      document.addEventListener('keydown', onKeydown);
+
+      // 恢复已保存的主题
+      try {
+        if (localStorage.getItem('jsrunner_theme') === 'dark') toggleTheme();
+      } catch(e) {}
+      // 恢复自动运行开关
+      try {
+        if (localStorage.getItem('jsrunner_auto') === 'false') autoRun.value = false;
+      } catch(e) {}
+
+      setTimeout(function(){
+        if (editor) {
+          editor.refresh();
+          editor.focus();
+        }
+      }, 100);
+    });
+
+    return {
+      autoRun: autoRun,
+      previewSrc: previewSrc,
+      totalLines: totalLines,
+      statusText: statusText,
+      donateVisible: donateVisible,
+      themeBtn: themeBtn,
+      editorBody: editorBody,
+      runnerMain: runnerMain,
+      panelEditor: panelEditor,
+      resizeHandle: resizeHandle,
+      resizeOverlay: resizeOverlay,
+      runCode: runCode,
+      formatCode: formatCode,
+      minifyCode: minifyCode,
+      toggleTheme: toggleTheme,
+      toggleAuto: toggleAuto,
+      goHome: goHome,
+      startResize: startResize
+    };
+  }
 });
 
-// ============================================================
-//  Storage
-// ============================================================
-function saveStorage() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ code: editor.getValue() }));
-  } catch(e) {}
-}
+app.use(ElementPlus);
+app.mount('#app');
 
-function restoreStorage() {
-  try {
-    var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved && saved.code) {
-      editor.setValue(saved.code);
-      return true;
-    }
-  } catch(e) {}
-  return false;
-}
-
-// ============================================================
-//  Init
-// ============================================================
-function init() {
-  restoreStorage();
-  updateStats();
-  runCode();
-  setTimeout(function(){
-    if (editor) {
-      editor.refresh();
-      editor.focus();
-    }
-  }, 100);
-}
-
-// Wait for CodeMirror to be fully available before init
-if (typeof CodeMirror !== 'undefined') {
-  init();
-} else {
-  var checkCm = setInterval(function(){
-    if (typeof CodeMirror !== 'undefined') {
-      clearInterval(checkCm);
-      init();
-    }
-  }, 50);
-  setTimeout(function(){ clearInterval(checkCm); }, 5000);
-}
-
-})();
+}).call(this);
 </script>
 </body>
 </html>
