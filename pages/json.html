@@ -120,6 +120,7 @@
             border: 1px solid #dcdfe6;
             border-radius: 4px;
             background: #fafafa;
+            position: relative;
         }
 
         .code-viewer-empty {
@@ -153,7 +154,8 @@
             font-size: 13px;
             line-height: 1.6;
             color: #303133;
-            white-space: pre;
+            white-space: pre-wrap;
+            word-break: break-all;
             flex: 1;
             border: none;
             outline: none;
@@ -164,6 +166,26 @@
 
         .code-textarea::placeholder {
             color: #c0c4cc;
+        }
+
+        /* 隐藏的测量容器：用同样的字体/宽度/换行规则测量每行实际占用的视觉行数 */
+        .code-measure {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 0;
+            overflow: hidden;
+            visibility: hidden;
+            pointer-events: none;
+            font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .code-measure-line {
+            display: block;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
 
         .code-content {
@@ -502,6 +524,7 @@
                             <pre class="code-lines" ref="inputLines">{{ inputLineNumbers }}</pre>
                             <textarea ref="inputArea" v-model="jsonText" class="code-textarea" placeholder="在此粘贴或输入 JSON 字符串..."
                                 @keydown="onKeydown" spellcheck="false"></textarea>
+                            <div class="code-measure" ref="measureBox" aria-hidden="true"></div>
                         </div>
                     </div>
                 </div>
@@ -586,6 +609,11 @@
                 const activeView = ref('code');
                 const inputArea = ref(null);
                 const inputLines = ref(null);
+                const measureBox = ref(null);
+                // 每个逻辑行换行后占用的视觉行数（用于行号对齐）
+                const inputRowSpans = ref([]);
+                const MAX_MEASURE_LINES = 20000;
+                let lastMeasuredWidth = -1;
 
                 const inputCharCount = computed(function () { return jsonText.value.length; });
                 const inputLineCount = computed(function () {
@@ -599,9 +627,15 @@
                 const inputLineNumbers = computed(function () {
                     if (!jsonText.value) return '1';
                     const lines = jsonText.value.split(/\r?\n/);
+                    const spans = inputRowSpans.value;
                     const nums = [];
                     for (let i = 0; i < lines.length; i++) {
+                        // 自动换行的续行用空行占位，保证可视行号与内容行对齐
+                        const rows = spans && spans[i] ? spans[i] : 1;
                         nums.push(i + 1);
+                        for (let k = 1; k < rows; k++) {
+                            nums.push('');
+                        }
                     }
                     return nums.join('\n');
                 });
@@ -1146,7 +1180,7 @@
                 });
 
                 function adjustSize() {
-                    nextTick(function () {
+                    return nextTick(function () {
                         var ta = inputArea.value;
                         var lines = inputLines.value;
                         if (!ta) return;
@@ -1157,22 +1191,64 @@
                         var parent = ta.parentElement;
                         var sty = getComputedStyle(ta);
                         var padV = parseFloat(sty.paddingTop) + parseFloat(sty.paddingBottom);
-                        var padH = parseFloat(sty.paddingLeft) + parseFloat(sty.paddingRight);
 
                         var contentH = ta.scrollHeight - padV;
-                        var contentW = ta.scrollWidth - padH;
-
                         var availH = parent.clientHeight - padV;
-                        var availW = parent.clientWidth - padH;
 
                         if (contentH > availH) {
                             ta.style.minHeight = contentH + 'px';
                             if (lines) lines.style.minHeight = contentH + 'px';
                         }
-                        if (contentW > availW) {
-                            ta.style.minWidth = contentW + 'px';
-                        }
+                        // 内容换行后高度会变化，行号需要重新测量
+                        updateWrappedLines();
                     });
+                }
+
+                // 测量每个逻辑行换行后占用的视觉行数，用于行号对齐
+                function updateWrappedLines() {
+                    var ta = inputArea.value;
+                    var box = measureBox.value;
+                    if (!ta || !box) return;
+
+                    var lines = (jsonText.value || '').split(/\r?\n/);
+                    // 超大文本不做逐行测量，退化为按逻辑行显示行号
+                    if (lines.length > MAX_MEASURE_LINES) {
+                        if (inputRowSpans.value.length) inputRowSpans.value = [];
+                        return;
+                    }
+
+                    var sty = getComputedStyle(ta);
+                    var padH = parseFloat(sty.paddingLeft) + parseFloat(sty.paddingRight);
+                    var width = ta.clientWidth - padH;
+                    if (!(width > 0)) width = ta.offsetWidth - padH;
+                    if (!(width > 0)) return;
+                    lastMeasuredWidth = ta.clientWidth;
+                    if (parseFloat(box.style.width) !== width) box.style.width = width + 'px';
+
+                    // 1. 同步测量容器的文本（只改动变化的行，避免重复创建节点）
+                    for (var i = 0; i < lines.length; i++) {
+                        var span = box.children[i];
+                        if (!span) {
+                            span = document.createElement('span');
+                            span.className = 'code-measure-line';
+                            box.appendChild(span);
+                        }
+                        var text = lines[i] === '' ? ' ' : lines[i];
+                        if (span.textContent !== text) span.textContent = text;
+                    }
+                    while (box.children.length > lines.length) box.removeChild(box.lastChild);
+
+                    // 2. 统一读取高度，计算视觉行数
+                    var lineHeight = parseFloat(sty.lineHeight) || (parseFloat(sty.fontSize) * 1.6);
+                    var prev = inputRowSpans.value;
+                    var rows = [];
+                    var changed = prev.length !== lines.length;
+                    for (var j = 0; j < lines.length; j++) {
+                        var r = Math.max(1, Math.round(box.children[j].offsetHeight / lineHeight));
+                        rows.push(r);
+                        if (prev[j] !== r) changed = true;
+                    }
+                    if (changed) inputRowSpans.value = rows;
                 }
 
                 function onKeydown(e) {
@@ -1190,6 +1266,20 @@
 
                 onMounted(function () {
                     adjustSize();
+                    // 宽度变化（窗口缩放、侧栏显隐等）后重新测量换行行数
+                    if (typeof ResizeObserver !== 'undefined' && inputArea.value) {
+                        new ResizeObserver(function () {
+                            var ta = inputArea.value;
+                            if (!ta || ta.clientWidth === lastMeasuredWidth) return;
+                            updateWrappedLines();
+                        }).observe(inputArea.value);
+                    }
+                    // 等字体加载完成后再测量一次，避免等宽字体未就绪导致行数误差
+                    if (document.fonts && document.fonts.ready) {
+                        document.fonts.ready.then(function () {
+                            adjustSize();
+                        });
+                    }
                 });
 
                 const highlightedResult = computed(() => {
@@ -1214,6 +1304,7 @@
                     jsonTreeData,
                     inputArea,
                     inputLines,
+                    measureBox,
                     inputCharCount,
                     inputLineCount,
                     inputSizeText,
