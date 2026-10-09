@@ -398,32 +398,6 @@
             height: 15px;
         }
 
-        /* Toast */
-        .toast {
-            position: fixed;
-            left: 50%;
-            bottom: 40px;
-            transform: translate(-50%, 16px);
-            background: #1f2937;
-            color: #ffffff;
-            font-size: 13.5px;
-            line-height: 1.5;
-            padding: 11px 20px;
-            border-radius: 8px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s ease, transform 0.25s ease;
-            z-index: 100;
-            max-width: calc(100vw - 40px);
-            text-align: center;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translate(-50%, 0);
-        }
-
         /* Responsive */
         @media (max-width: 640px) {
             .container {
@@ -510,8 +484,6 @@
     <footer class="footer">
         &copy; 2026 LBN Tools
     </footer>
-
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
         /* 实时时钟：精确到秒，按整秒对齐刷新 */
@@ -644,76 +616,7 @@
         })();
     </script>
 
-    <script>
-        /* 一键分享：复制网站信息与链接到剪贴板 */
-        (function () {
-            var btn = document.getElementById('shareBtn');
-            var toastEl = document.getElementById('toast');
-            if (!btn) return;
-
-            var SHARE_TITLE = 'LBN Tools - 实用在线工具集';
-            var SHARE_DESC = 'JSON 格式化、JS 代码美化、SQL 格式化、时间戳转换等开发者常用工具，浏览器即开即用，数据本地处理更安全。';
-            var SHARE_URL = 'https://lbprime.github.io/';
-
-            var toastTimer = null;
-
-            function toast(msg) {
-                if (!toastEl) return;
-                toastEl.textContent = msg;
-                toastEl.classList.add('show');
-                clearTimeout(toastTimer);
-                toastTimer = setTimeout(function () {
-                    toastEl.classList.remove('show');
-                }, 2200);
-            }
-
-            function shareText() {
-                return SHARE_TITLE + '\n' + SHARE_DESC + '\n' + SHARE_URL;
-            }
-
-            /* 兼容旧浏览器 / 非安全上下文的复制方案 */
-            function fallbackCopy(text) {
-                var ta = document.createElement('textarea');
-                ta.value = text;
-                ta.setAttribute('readonly', '');
-                ta.style.position = 'fixed';
-                ta.style.top = '-9999px';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.select();
-                ta.setSelectionRange(0, ta.value.length);
-                var ok = false;
-                try {
-                    ok = document.execCommand('copy');
-                } catch (e) {
-                    ok = false;
-                }
-                document.body.removeChild(ta);
-                return ok;
-            }
-
-            function copyText(text) {
-                if (navigator.clipboard && window.isSecureContext) {
-                    return navigator.clipboard.writeText(text).then(function () {
-                        return true;
-                    }, function () {
-                        return fallbackCopy(text);
-                    });
-                }
-                return Promise.resolve(fallbackCopy(text));
-            }
-
-            btn.addEventListener('click', function () {
-                copyText(shareText()).then(function (ok) {
-                    if (ok) {
-                        toast('已复制网站信息与链接，快去分享吧～');
-                    } else {
-                        toast('复制失败，请手动复制：' + SHARE_URL);
-                    }
-                });
-            });
-        })();
-    </script>
+    <script src="/assets/js/share.js" defer></script>
 </body>
 
 </html>
