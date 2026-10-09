@@ -155,9 +155,9 @@
     }
 
     function init() {
+        injectStyles();
         var btn = document.getElementById('shareBtn');
         if (!btn) {
-            injectStyles();
             btn = createFab();
         }
         bind(btn);
