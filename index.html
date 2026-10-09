@@ -358,6 +358,72 @@
             opacity: 0.5;
         }
 
+        /* Share */
+        .share-bar {
+            display: flex;
+            justify-content: center;
+            margin-top: 18px;
+        }
+
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 20px;
+            font-size: 13.5px;
+            font-weight: 500;
+            font-family: inherit;
+            color: var(--accent);
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+        }
+
+        .share-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .share-btn:active {
+            transform: translateY(0);
+        }
+
+        .share-btn svg {
+            width: 15px;
+            height: 15px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 40px;
+            transform: translate(-50%, 16px);
+            background: #1f2937;
+            color: #ffffff;
+            font-size: 13.5px;
+            line-height: 1.5;
+            padding: 11px 20px;
+            border-radius: 8px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 100;
+            max-width: calc(100vw - 40px);
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
         /* Responsive */
         @media (max-width: 640px) {
             .container {
@@ -419,6 +485,19 @@
             <div class="stats-bar" style="margin-top: 20px;">
                 <span>共 <strong id="pageCount">-</strong> 个工具</span>
             </div>
+            <div class="share-bar">
+                <button class="share-btn" id="shareBtn" type="button" aria-label="一键分享本站">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
+                    <span>一键分享</span>
+                </button>
+            </div>
         </header>
 
         <div class="page-grid" id="pageGrid">
@@ -431,6 +510,8 @@
     <footer class="footer">
         &copy; 2026 LBN Tools
     </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script>
         /* 实时时钟：精确到秒，按整秒对齐刷新 */
@@ -560,6 +641,77 @@
                 .catch(function (err) {
                     renderError(err.message);
                 });
+        })();
+    </script>
+
+    <script>
+        /* 一键分享：复制网站信息与链接到剪贴板 */
+        (function () {
+            var btn = document.getElementById('shareBtn');
+            var toastEl = document.getElementById('toast');
+            if (!btn) return;
+
+            var SHARE_TITLE = 'LBN Tools - 实用在线工具集';
+            var SHARE_DESC = 'JSON 格式化、JS 代码美化、SQL 格式化、时间戳转换等开发者常用工具，浏览器即开即用，数据本地处理更安全。';
+            var SHARE_URL = 'https://lbprime.github.io/';
+
+            var toastTimer = null;
+
+            function toast(msg) {
+                if (!toastEl) return;
+                toastEl.textContent = msg;
+                toastEl.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(function () {
+                    toastEl.classList.remove('show');
+                }, 2200);
+            }
+
+            function shareText() {
+                return SHARE_TITLE + '\n' + SHARE_DESC + '\n' + SHARE_URL;
+            }
+
+            /* 兼容旧浏览器 / 非安全上下文的复制方案 */
+            function fallbackCopy(text) {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.top = '-9999px';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                ta.setSelectionRange(0, ta.value.length);
+                var ok = false;
+                try {
+                    ok = document.execCommand('copy');
+                } catch (e) {
+                    ok = false;
+                }
+                document.body.removeChild(ta);
+                return ok;
+            }
+
+            function copyText(text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    return navigator.clipboard.writeText(text).then(function () {
+                        return true;
+                    }, function () {
+                        return fallbackCopy(text);
+                    });
+                }
+                return Promise.resolve(fallbackCopy(text));
+            }
+
+            btn.addEventListener('click', function () {
+                copyText(shareText()).then(function (ok) {
+                    if (ok) {
+                        toast('已复制网站信息与链接，快去分享吧～');
+                    } else {
+                        toast('复制失败，请手动复制：' + SHARE_URL);
+                    }
+                });
+            });
         })();
     </script>
 </body>
