@@ -90,13 +90,16 @@
             opacity: 0.3;
         }
 
-        /* Clock */
+        /* Clock：固定在页面左上角 */
         .clock {
+            position: fixed;
+            top: 22px;
+            left: 26px;
+            z-index: 50;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            margin-top: 26px;
+            align-items: flex-start;
+            gap: 8px;
             animation: clock-in 0.5s ease both;
         }
 
@@ -115,7 +118,7 @@
         .clock-time {
             display: flex;
             align-items: baseline;
-            font-size: 46px;
+            font-size: 26px;
             font-weight: 600;
             line-height: 1.1;
             letter-spacing: 1px;
@@ -125,14 +128,14 @@
         }
 
         .clock-time .clock-sec {
-            margin-left: 6px;
-            font-size: 26px;
+            margin-left: 5px;
+            font-size: 16px;
             font-weight: 700;
             color: var(--accent);
         }
 
         .clock-progress {
-            width: 150px;
+            width: 110px;
             height: 3px;
             border-radius: 2px;
             background: var(--border);
@@ -163,7 +166,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-muted);
             letter-spacing: 1px;
         }
@@ -358,46 +361,6 @@
             opacity: 0.5;
         }
 
-        /* Share */
-        .share-bar {
-            display: flex;
-            justify-content: center;
-            margin-top: 18px;
-        }
-
-        .share-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 9px 20px;
-            font-size: 13.5px;
-            font-weight: 500;
-            font-family: inherit;
-            color: var(--accent);
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-        }
-
-        .share-btn:hover {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #ffffff;
-            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
-            transform: translateY(-1px);
-        }
-
-        .share-btn:active {
-            transform: translateY(0);
-        }
-
-        .share-btn svg {
-            width: 15px;
-            height: 15px;
-        }
-
         /* Responsive */
         @media (max-width: 640px) {
             .container {
@@ -412,17 +375,22 @@
                 font-size: 28px;
             }
 
+            .clock {
+                top: 14px;
+                left: 16px;
+            }
+
             .clock-time {
-                font-size: 34px;
+                font-size: 20px;
                 letter-spacing: 0.5px;
             }
 
             .clock-time .clock-sec {
-                font-size: 20px;
+                font-size: 13px;
             }
 
             .clock-progress {
-                width: 120px;
+                width: 88px;
             }
 
             .page-grid {
@@ -438,39 +406,27 @@
 </head>
 
 <body>
+    <div class="clock">
+        <time class="clock-time" id="clockTime">
+            <span id="clockHM">--:--:</span><span class="clock-sec" id="clockSec">--</span>
+        </time>
+        <div class="clock-progress">
+            <div class="clock-progress-bar" id="clockProgressBar"></div>
+        </div>
+        <div class="clock-date">
+            <span id="clockDate">--</span>
+            <span class="clock-dot"></span>
+            <span id="clockWeek">--</span>
+        </div>
+    </div>
+
     <div class="container">
         <header class="header">
             <h1 class="logo">LBN Tools</h1>
             <p class="subtitle">实用在线工具集</p>
             <div class="divider"></div>
-            <div class="clock">
-                <time class="clock-time" id="clockTime">
-                    <span id="clockHM">--:--:</span><span class="clock-sec" id="clockSec">--</span>
-                </time>
-                <div class="clock-progress">
-                    <div class="clock-progress-bar" id="clockProgressBar"></div>
-                </div>
-                <div class="clock-date">
-                    <span id="clockDate">--</span>
-                    <span class="clock-dot"></span>
-                    <span id="clockWeek">--</span>
-                </div>
-            </div>
             <div class="stats-bar" style="margin-top: 20px;">
                 <span>共 <strong id="pageCount">-</strong> 个工具</span>
-            </div>
-            <div class="share-bar">
-                <button class="share-btn" id="shareBtn" type="button" aria-label="一键分享本站">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="18" cy="5" r="3"></circle>
-                        <circle cx="6" cy="12" r="3"></circle>
-                        <circle cx="18" cy="19" r="3"></circle>
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                    </svg>
-                    <span>一键分享</span>
-                </button>
             </div>
         </header>
 
