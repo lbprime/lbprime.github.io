@@ -149,7 +149,7 @@
             background: var(--accent);
             transform-origin: left center;
             transform: scaleX(0);
-            animation: clock-progress 1s linear infinite;
+            animation: clock-progress 60s linear infinite;
         }
 
         @keyframes clock-progress {
@@ -485,8 +485,9 @@
                 timer = setTimeout(tick, nextDelay());
             }
 
+            // 按当前秒数在分钟内的偏移对齐，让进度条与整分同步走满并重置
             function syncProgress() {
-                if (barEl) barEl.style.animationDelay = '-' + (Date.now() % 1000) + 'ms';
+                if (barEl) barEl.style.animationDelay = '-' + (Date.now() % 60000) + 'ms';
             }
 
             function start() {
