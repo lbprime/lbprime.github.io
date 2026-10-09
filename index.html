@@ -90,6 +90,104 @@
             opacity: 0.3;
         }
 
+        /* Clock */
+        .clock {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 26px;
+            animation: clock-in 0.5s ease both;
+        }
+
+        @keyframes clock-in {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .clock-time {
+            display: flex;
+            align-items: baseline;
+            font-size: 46px;
+            font-weight: 600;
+            line-height: 1.1;
+            letter-spacing: 1px;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: 'tnum';
+        }
+
+        .clock-time .clock-sec {
+            margin-left: 6px;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .clock-progress {
+            width: 150px;
+            height: 3px;
+            border-radius: 2px;
+            background: var(--border);
+            overflow: hidden;
+        }
+
+        .clock-progress-bar {
+            width: 100%;
+            height: 100%;
+            border-radius: 2px;
+            background: var(--accent);
+            transform-origin: left center;
+            transform: scaleX(0);
+            animation: clock-progress 1s linear infinite;
+        }
+
+        @keyframes clock-progress {
+            from {
+                transform: scaleX(0);
+            }
+
+            to {
+                transform: scaleX(1);
+            }
+        }
+
+        .clock-date {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .clock-date .clock-dot {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: #d4d4d8;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .clock,
+            .clock-progress-bar {
+                animation: none;
+            }
+
+            .clock-progress-bar {
+                transform: scaleX(1);
+                opacity: 0.5;
+            }
+        }
+
         /* Stats */
         .stats-bar {
             display: flex;
@@ -274,6 +372,19 @@
                 font-size: 28px;
             }
 
+            .clock-time {
+                font-size: 34px;
+                letter-spacing: 0.5px;
+            }
+
+            .clock-time .clock-sec {
+                font-size: 20px;
+            }
+
+            .clock-progress {
+                width: 120px;
+            }
+
             .page-grid {
                 grid-template-columns: 1fr;
             }
@@ -292,6 +403,19 @@
             <h1 class="logo">LBN Tools</h1>
             <p class="subtitle">实用在线工具集</p>
             <div class="divider"></div>
+            <div class="clock">
+                <time class="clock-time" id="clockTime">
+                    <span id="clockHM">--:--:</span><span class="clock-sec" id="clockSec">--</span>
+                </time>
+                <div class="clock-progress">
+                    <div class="clock-progress-bar" id="clockProgressBar"></div>
+                </div>
+                <div class="clock-date">
+                    <span id="clockDate">--</span>
+                    <span class="clock-dot"></span>
+                    <span id="clockWeek">--</span>
+                </div>
+            </div>
             <div class="stats-bar" style="margin-top: 20px;">
                 <span>共 <strong id="pageCount">-</strong> 个工具</span>
             </div>
@@ -307,6 +431,76 @@
     <footer class="footer">
         &copy; 2026 LBN Tools
     </footer>
+
+    <script>
+        /* 实时时钟：精确到秒，按整秒对齐刷新 */
+        (function () {
+            var hmEl = document.getElementById('clockHM');
+            var secEl = document.getElementById('clockSec');
+            var dateEl = document.getElementById('clockDate');
+            var weekEl = document.getElementById('clockWeek');
+            var timeEl = document.getElementById('clockTime');
+            var barEl = document.getElementById('clockProgressBar');
+            if (!hmEl || !secEl || !dateEl) return;
+
+            var WEEKS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            var timer = null;
+
+            function pad(n) {
+                return n < 10 ? '0' + n : '' + n;
+            }
+
+            function render() {
+                var now = new Date();
+                var h = pad(now.getHours());
+                var m = pad(now.getMinutes());
+                var s = pad(now.getSeconds());
+
+                hmEl.textContent = h + ':' + m + ':';
+                secEl.textContent = s;
+                dateEl.textContent = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日';
+                weekEl.textContent = WEEKS[now.getDay()];
+                if (timeEl) {
+                    timeEl.setAttribute('datetime', now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' +
+                        pad(now.getDate()) + 'T' + h + ':' + m + ':' + s);
+                }
+            }
+
+            // 对齐到下一个整秒，避免长时间运行产生累积误差
+            function nextDelay() {
+                return 1000 - (Date.now() % 1000) + 10;
+            }
+
+            function tick() {
+                render();
+                timer = setTimeout(tick, nextDelay());
+            }
+
+            function syncProgress() {
+                if (barEl) barEl.style.animationDelay = '-' + (Date.now() % 1000) + 'ms';
+            }
+
+            function start() {
+                if (timer !== null) return;
+                render();
+                syncProgress();
+                timer = setTimeout(tick, nextDelay());
+            }
+
+            function stop() {
+                if (timer === null) return;
+                clearTimeout(timer);
+                timer = null;
+            }
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) stop();
+                else start();
+            });
+
+            start();
+        })();
+    </script>
 
     <script>
         (function () {
