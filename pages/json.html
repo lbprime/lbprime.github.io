@@ -116,6 +116,8 @@
         .code-viewer {
             height: 100%;
             overflow: auto;
+            /* 常驻滚动条槽位：滚动条出现/消失时内容宽度不变，避免 textarea 重新折行导致高度测算失效 */
+            scrollbar-gutter: stable;
             display: flex;
             border: 1px solid #dcdfe6;
             border-radius: 4px;
@@ -524,7 +526,7 @@
                         <div class="code-viewer">
                             <pre class="code-lines" ref="inputLines">{{ inputLineNumbers }}</pre>
                             <textarea ref="inputArea" v-model="jsonText" class="code-textarea" placeholder="在此粘贴或输入 JSON 字符串..."
-                                @keydown="onKeydown" spellcheck="false"></textarea>
+                                @keydown="onKeydown" @scroll="resetInputScroll" spellcheck="false"></textarea>
                             <div class="code-measure" ref="measureBox" aria-hidden="true"></div>
                         </div>
                     </div>
@@ -1200,9 +1202,31 @@
                             ta.style.minHeight = contentH + 'px';
                             if (lines) lines.style.minHeight = contentH + 'px';
                         }
+                        // textarea 已被撑满，内部残留的滚动偏移会让开头的行被隐藏，这里强制归零
+                        forceInputScrollTop();
                         // 内容换行后高度会变化，行号需要重新测量
                         updateWrappedLines();
+                        // 记录本次调整后的实际宽度，避免 ResizeObserver 因自身引起的尺寸变化反复触发
+                        lastMeasuredWidth = ta.clientWidth;
                     });
+                }
+
+                // textarea 的滚动统一交给外层 .code-viewer，自身不应存在滚动偏移。
+                // 但粘贴/回车时浏览器为定位光标会给它设置内部滚动偏移，而 overflow:hidden 下既看不到滚动条也没法滚回来，
+                // 结果就是开头的内容被永久藏住，所以必须清掉。
+                function forceInputScrollTop() {
+                    var ta = inputArea.value;
+                    if (!ta) return;
+                    if (ta.scrollTop !== 0) ta.scrollTop = 0;
+                    if (ta.scrollLeft !== 0) ta.scrollLeft = 0;
+                }
+
+                // 滚动事件兜底：仅在 textarea 内部确实没有需要滚动的内容时归零，避免与原生滚动行为互相拉扯
+                function resetInputScroll() {
+                    var ta = inputArea.value;
+                    if (!ta) return;
+                    if (ta.scrollHeight - ta.clientHeight > 1) return;
+                    forceInputScrollTop();
                 }
 
                 // 测量每个逻辑行换行后占用的视觉行数，用于行号对齐
@@ -1272,7 +1296,8 @@
                         new ResizeObserver(function () {
                             var ta = inputArea.value;
                             if (!ta || ta.clientWidth === lastMeasuredWidth) return;
-                            updateWrappedLines();
+                            // 宽度变化会引起换行数变化，内容高度随之变化，需要重新撑高，否则尾部会被 overflow:hidden 裁掉
+                            adjustSize();
                         }).observe(inputArea.value);
                     }
                     // 等字体加载完成后再测量一次，避免等宽字体未就绪导致行数误差
@@ -1322,6 +1347,7 @@
                     clearAll,
                     goHome,
                     onKeydown,
+                    resetInputScroll,
                     highlightedResult
                 };
             }
