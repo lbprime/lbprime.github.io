@@ -422,6 +422,11 @@
                 max-width: 100% !important;
             }
         }
+
+        /* 首页链接：el-button 渲染为 a 标签，去除下划线 */
+        a.el-button {
+            text-decoration: none;
+        }
     </style>
     <script src="/assets/js/share.js" defer></script>
 </head>
@@ -435,7 +440,7 @@
             </div>
 
             <div class="time-toolbar">
-                <el-button @click="goHome" text><el-icon><home-filled-icon></home-filled-icon></el-icon>&nbsp;返回首页</el-button>
+                <el-button tag="a" href="/" text><el-icon><home-filled-icon></home-filled-icon></el-icon>&nbsp;返回首页</el-button>
             </div>
 
             <div class="time-cards">
@@ -1147,10 +1152,6 @@
                     });
                 }
 
-                function goHome() {
-                    window.location.href = '/';
-                }
-
                 return {
                     activeTab,
                     dateType,
@@ -1186,8 +1187,7 @@
                     setFormat,
                     formatType,
                     copyText,
-                    copyDiffResult,
-                    goHome
+                    copyDiffResult
                 };
             }
         });

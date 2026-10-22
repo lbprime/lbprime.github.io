@@ -193,6 +193,9 @@ body{
   .resize-handle{width:100%;height:var(--divider-w);cursor:row-resize}
   .resize-overlay{cursor:row-resize}
 }
+
+/* 首页链接：el-button 渲染为 a 标签，去除下划线 */
+a.el-button{text-decoration:none}
 </style>
     <script src="/assets/js/share.js" defer></script>
 </head>
@@ -213,7 +216,7 @@ body{
     <el-button size="small" @click="minifyCode" title="压缩代码 (HTML+CSS+JS)">Minify</el-button>
     <el-button size="small" type="primary" @click="runCode" title="运行 (Ctrl+Enter)">▶ Run</el-button>
     <el-button size="small" @click="toggleTheme" title="主题切换">{{ themeBtn }}</el-button>
-    <el-button size="small" text @click="goHome">← 首页</el-button>
+    <el-button size="small" text tag="a" href="/">← 首页</el-button>
   </div>
 </header>
 
@@ -864,10 +867,6 @@ var app = createApp({
       return false;
     }
 
-    function goHome() {
-      window.location.href = '/';
-    }
-
     // ---- Keyboard shortcuts ----
     function onKeydown(e) {
       var tag = e.target.tagName;
@@ -935,7 +934,6 @@ var app = createApp({
       minifyCode: minifyCode,
       toggleTheme: toggleTheme,
       toggleAuto: toggleAuto,
-      goHome: goHome,
       startResize: startResize
     };
   }

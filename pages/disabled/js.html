@@ -341,6 +341,11 @@
         .token.function {
             color: #6f42c1;
         }
+
+        /* 首页链接：el-button 渲染为 a 标签，去除下划线 */
+        a.el-button {
+            text-decoration: none;
+        }
     </style>
 </head>
 
@@ -352,7 +357,7 @@
                     <h3>JS 工具</h3>
                     <p>在左侧输入 JavaScript 代码，结果将显示在右侧</p>
                 </div>
-                <el-button @click="goHome" text
+                <el-button tag="a" href="/" text
                     style="padding-left:0"><el-icon><home-filled-icon></home-filled-icon></el-icon>&nbsp;返回首页</el-button>
             </div>
 
@@ -602,10 +607,6 @@
                     }
                 }
 
-                function goHome() {
-                    window.location.href = '/';
-                }
-
                 function adjustSize() {
                     nextTick(function () {
                         var ta = inputArea.value;
@@ -676,7 +677,6 @@
                     minifyJs,
                     copyResult,
                     clearAll,
-                    goHome,
                     onKeydown,
                     highlightedResult
                 };

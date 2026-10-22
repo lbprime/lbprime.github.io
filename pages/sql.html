@@ -314,6 +314,11 @@
             color: #c0c4cc;
             font-size: 13px;
         }
+
+        /* 首页链接：el-button 渲染为 a 标签，去除下划线 */
+        a.el-button {
+            text-decoration: none;
+        }
     </style>
     <script src="/assets/js/share.js" defer></script>
 </head>
@@ -326,7 +331,7 @@
                     <h1>SQL 工具</h1>
                     <p>在线 SQL 格式化 / 语法检测 / 压缩，支持多种方言</p>
                 </div>
-                <el-button @click="goHome" text style="padding-left:0">
+                <el-button tag="a" href="/" text style="padding-left:0">
                     <el-icon><home-filled-icon></home-filled-icon></el-icon>&nbsp;返回首页
                 </el-button>
             </div>
@@ -1136,10 +1141,6 @@
                         setStatus('已清空');
                     }
 
-                    function goHome() {
-                        window.location.href = '/';
-                    }
-
                     // ---- 配置变更自动持久化 ----
                     function persistConfig() {
                         saveConfig({
@@ -1289,8 +1290,7 @@
                         compressSql: compressSql,
                         copyResult: copyResult,
                         swapPanels: swapPanels,
-                        clearAll: clearAll,
-                        goHome: goHome
+                        clearAll: clearAll
                     };
                 }
             });

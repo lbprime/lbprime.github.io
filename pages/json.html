@@ -476,6 +476,11 @@
             color: #005cc5;
             font-style: italic;
         }
+
+        /* 首页链接：el-button 渲染为 a 标签，去除下划线 */
+        a.el-button {
+            text-decoration: none;
+        }
     </style>
     <script src="/assets/js/share.js" defer></script>
 </head>
@@ -488,7 +493,7 @@
                     <h1>JSON 工具</h1>
                     <p>在左侧输入 JSON，结果将显示在右侧</p>
                 </div>
-                <el-button @click="goHome" text
+                <el-button tag="a" href="/" text
                     style="padding-left:0"><el-icon><home-filled-icon></home-filled-icon></el-icon>&nbsp;返回首页</el-button>
             </div>
 
@@ -1124,10 +1129,6 @@
                     setStatus('已清空');
                 }
 
-                function goHome() {
-                    window.location.href = '/';
-                }
-
                 function getJsonType(val) {
                     if (val === null) return 'null';
                     if (Array.isArray(val)) return 'array';
@@ -1345,7 +1346,6 @@
                     unescapeJson,
                     copyResult,
                     clearAll,
-                    goHome,
                     onKeydown,
                     resetInputScroll,
                     highlightedResult

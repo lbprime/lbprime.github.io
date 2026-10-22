@@ -444,6 +444,11 @@
                 max-height: 220px;
             }
         }
+
+        /* 首页链接：el-button 渲染为 a 标签，去除下划线 */
+        a.el-button {
+            text-decoration: none;
+        }
     </style>
     <script src="/assets/js/share.js" defer></script>
 </head>
@@ -457,7 +462,7 @@
             </div>
 
             <div class="hash-toolbar">
-                <el-button @click="goHome"
+                <el-button tag="a" href="/"
                     text><el-icon><home-filled-icon></home-filled-icon></el-icon>&nbsp;返回首页</el-button>
             </div>
 
@@ -774,10 +779,6 @@
                     writeClipboard(lines.join('\n'));
                 }
 
-                function goHome() {
-                    window.location.href = '/';
-                }
-
                 return {
                     activeTab,
                     textInput,
@@ -802,8 +803,7 @@
                     onDrop,
                     clearFile,
                     copyOne,
-                    copyAll,
-                    goHome
+                    copyAll
                 };
             }
         });
